@@ -11,6 +11,8 @@ type InvitePageProps = {
   }>;
 };
 
+const referralCodePattern = /^[A-Z0-9-]{3,32}$/;
+
 export const metadata: Metadata = {
   title: "Away We Go Invite",
   description: "Give $15, Get $15 with an Away We Go referral invite.",
@@ -26,7 +28,7 @@ function normalizedReferralCode(rawCode: string) {
   }
 
   const normalized = decodedCode.trim().toUpperCase();
-  return normalized.length > 0 ? normalized : null;
+  return referralCodePattern.test(normalized) ? normalized : null;
 }
 
 export default async function InvitePage({ params }: InvitePageProps) {

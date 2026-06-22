@@ -57,6 +57,7 @@ test("apple app site association exposes referral invite paths", async ({
 }) => {
   const response = await request.get(
     "/.well-known/apple-app-site-association",
+    { maxRedirects: 0 },
   );
 
   expect(response.ok()).toBeTruthy();
@@ -76,4 +77,10 @@ test("apple app site association exposes referral invite paths", async ({
       ],
     },
   });
+});
+
+test("referral invite page rejects malformed codes", async ({ request }) => {
+  const response = await request.get("/invite/friend_15");
+
+  expect(response.status()).toBe(404);
 });
