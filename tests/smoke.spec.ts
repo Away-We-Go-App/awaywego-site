@@ -33,3 +33,54 @@ test("homepage and legal pages render the required public content", async ({
   await expect(page.getByRole("heading", { name: "Support" })).toBeVisible();
   await expect(page.getByText("support@awaywegoapp.com")).toBeVisible();
 });
+
+test("referral invite page preserves the code and links into the app", async ({
+  page,
+}) => {
+  await page.goto("/invite/Friend15");
+
+  await expect(
+    page.getByRole("heading", { name: "Give $15, Get $15" }),
+  ).toBeVisible();
+  await expect(page.getByText("FRIEND15", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Use code FRIEND15 at checkout."),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy code" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Open Away We Go" }),
+  ).toHaveAttribute("href", "awaywego://invite/FRIEND15");
+});
+
+test("apple app site association exposes referral invite paths", async ({
+  request,
+}) => {
+  const response = await request.get(
+    "/.well-known/apple-app-site-association",
+    { maxRedirects: 0 },
+  );
+
+  expect(response.ok()).toBeTruthy();
+  expect(response.headers()["content-type"]).toContain("application/json");
+  expect(await response.json()).toEqual({
+    applinks: {
+      apps: [],
+      details: [
+        {
+          appIDs: ["5CC3T43XKF.com.sebdeluca.TravelStack"],
+          components: [
+            {
+              "/": "/invite/*",
+            },
+          ],
+        },
+      ],
+    },
+  });
+});
+
+test("referral invite page rejects malformed codes", async ({ request }) => {
+  const response = await request.get("/invite/friend_15");
+
+  expect(response.status()).toBe(404);
+});
