@@ -84,11 +84,42 @@ a {
   text-rendering: optimizeLegibility;
 }
 
+.postboy-route-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+.postboy-route-shadow,
+.postboy-route-path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 10 13;
+  vector-effect: non-scaling-stroke;
+  opacity: 0;
+  transition: opacity 240ms ease-out;
+}
+
+.postboy-route-shadow {
+  stroke: rgba(255, 252, 244, 0.82);
+  stroke-width: 8px;
+}
+
+.postboy-route-path {
+  stroke: rgba(176, 74, 58, 0.76);
+  stroke-width: 3.2px;
+  filter: drop-shadow(0 1px 2px rgba(90, 74, 50, 0.16));
+}
+
 .postboy-motion-trails {
   --postboy-trail-opacity: 0;
   position: absolute;
   inset: 0;
-  z-index: 20;
+  z-index: 5;
   opacity: var(--postboy-trail-opacity);
   transition: opacity 160ms ease-out;
 }
@@ -102,9 +133,9 @@ a {
 }
 
 .postboy-speed-haze {
-  left: 64%;
-  top: 55%;
-  width: 72%;
+  left: 82%;
+  top: 60%;
+  width: 76%;
   height: 20%;
   border-radius: 999px;
   background:
@@ -116,7 +147,7 @@ a {
 }
 
 .postboy-wind-trail {
-  left: 66%;
+  left: 84%;
   height: 4px;
   border-radius: 999px;
   background: linear-gradient(
@@ -133,18 +164,18 @@ a {
 }
 
 .postboy-wind-trail-long {
-  top: 62%;
-  width: 44%;
+  top: 64%;
+  width: 46%;
 }
 
 .postboy-wind-trail-mid {
-  top: 70%;
+  top: 72%;
   width: 34%;
   animation-delay: -250ms;
 }
 
 .postboy-wind-trail-short {
-  top: 53%;
+  top: 56%;
   width: 26%;
   animation-delay: -500ms;
 }
@@ -162,13 +193,13 @@ a {
 }
 
 .postboy-cloud-puff-one {
-  left: 72%;
-  top: 73%;
+  left: 92%;
+  top: 76%;
 }
 
 .postboy-cloud-puff-two {
-  left: 88%;
-  top: 66%;
+  left: 110%;
+  top: 68%;
   width: 9%;
   animation-delay: -520ms;
 }

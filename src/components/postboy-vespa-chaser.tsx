@@ -3,6 +3,11 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
+type Point = {
+  x: number;
+  y: number;
+};
+
 type MotionState = {
   facing: 1 | -1;
   targetX: number;
@@ -13,13 +18,86 @@ type MotionState = {
   y: number;
 };
 
+type RoutePoint = Point & {
+  createdAt: number;
+};
+
+type RouteState = {
+  lastAddedAt: number;
+  points: RoutePoint[];
+};
+
 const POSTBOY_SIZE = {
   width: 279,
   height: 360,
 } as const;
 
+const ROUTE_MAX_POINTS = 22;
+const ROUTE_POINT_DISTANCE = 54;
+const ROUTE_POINT_FAST_DISTANCE = 150;
+const ROUTE_POINT_INTERVAL = 120;
+const ROUTE_REVEAL_MS = 520;
+const ROUTE_CONSUME_RADIUS = 46;
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function distanceBetween(a: Point, b: Point) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function formatPoint(point: Point) {
+  return `${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
+}
+
+function buildCurvedRoutePath(origin: Point, routePoints: Point[]) {
+  if (routePoints.length === 0) {
+    return "";
+  }
+
+  const points = [origin, ...routePoints];
+  let path = `M ${formatPoint(points[0])}`;
+
+  if (points.length === 2) {
+    return `${path} L ${formatPoint(points[1])}`;
+  }
+
+  for (let index = 1; index < points.length - 1; index += 1) {
+    const current = points[index];
+    const next = points[index + 1];
+    const midpoint = {
+      x: (current.x + next.x) / 2,
+      y: (current.y + next.y) / 2,
+    };
+
+    path += ` Q ${formatPoint(current)} ${formatPoint(midpoint)}`;
+  }
+
+  return `${path} L ${formatPoint(points[points.length - 1])}`;
+}
+
+function visibleRoutePoints(origin: Point, routePoints: RoutePoint[], now: number) {
+  const points: Point[] = [];
+  let previous = origin;
+
+  for (const point of routePoints) {
+    const reveal = clamp((now - point.createdAt) / ROUTE_REVEAL_MS, 0, 1);
+    const visiblePoint = {
+      x: previous.x + (point.x - previous.x) * reveal,
+      y: previous.y + (point.y - previous.y) * reveal,
+    };
+
+    points.push(visiblePoint);
+
+    if (reveal < 1) {
+      break;
+    }
+
+    previous = point;
+  }
+
+  return points;
 }
 
 function initialPosition() {
@@ -39,6 +117,8 @@ export function PostboyVespaChaser() {
   const riderRef = useRef<HTMLDivElement>(null);
   const spriteRef = useRef<HTMLDivElement>(null);
   const trailsRef = useRef<HTMLDivElement>(null);
+  const routePathRef = useRef<SVGPathElement>(null);
+  const routeShadowPathRef = useRef<SVGPathElement>(null);
   const motionRef = useRef<MotionState>({
     facing: 1,
     targetX: 0,
@@ -47,6 +127,10 @@ export function PostboyVespaChaser() {
     velocityY: 0,
     x: 0,
     y: 0,
+  });
+  const routeRef = useRef<RouteState>({
+    lastAddedAt: 0,
+    points: [],
   });
 
   useEffect(() => {
@@ -75,14 +159,18 @@ export function PostboyVespaChaser() {
     const rider = riderRef.current;
     const sprite = spriteRef.current;
     const trails = trailsRef.current;
+    const routePath = routePathRef.current;
+    const routeShadowPath = routeShadowPathRef.current;
 
-    if (!rider || !sprite || !trails) {
+    if (!rider || !sprite || !trails || !routePath || !routeShadowPath) {
       return;
     }
 
     const riderElement = rider;
     const spriteElement = sprite;
     const trailsElement = trails;
+    const routePathElement = routePath;
+    const routeShadowPathElement = routeShadowPath;
     const start = initialPosition();
     motionRef.current = {
       facing: 1,
@@ -93,6 +181,10 @@ export function PostboyVespaChaser() {
       x: start.x,
       y: start.y,
     };
+    routeRef.current = {
+      lastAddedAt: 0,
+      points: [],
+    };
 
     riderElement.style.left = "0px";
     riderElement.style.right = "auto";
@@ -101,20 +193,69 @@ export function PostboyVespaChaser() {
     riderElement.style.transform = `translate3d(${start.x}px, ${start.y}px, 0)`;
 
     function handlePointerMove(event: PointerEvent) {
-      motionRef.current.targetX = event.clientX;
-      motionRef.current.targetY = event.clientY;
+      const now = performance.now();
+      const current = motionRef.current;
+      const route = routeRef.current;
+      const nextPoint = { x: event.clientX, y: event.clientY };
+      const lastPoint = route.points[route.points.length - 1] ?? {
+        x: current.x,
+        y: current.y,
+      };
+      const distance = distanceBetween(lastPoint, nextPoint);
+      const elapsed = now - route.lastAddedAt;
+
+      if (
+        distance < ROUTE_POINT_DISTANCE ||
+        (elapsed < ROUTE_POINT_INTERVAL && distance < ROUTE_POINT_FAST_DISTANCE)
+      ) {
+        return;
+      }
+
+      route.points.push({
+        ...nextPoint,
+        createdAt: now,
+      });
+      route.lastAddedAt = now;
+
+      if (route.points.length > ROUTE_MAX_POINTS) {
+        route.points.splice(0, route.points.length - ROUTE_MAX_POINTS);
+      }
     }
 
     function handleResize() {
       const current = motionRef.current;
+      const route = routeRef.current;
       current.x = clamp(current.x, 64, window.innerWidth - 64);
       current.y = clamp(current.y, 70, window.innerHeight - 64);
       current.targetX = clamp(current.targetX, 64, window.innerWidth - 64);
       current.targetY = clamp(current.targetY, 70, window.innerHeight - 64);
+
+      for (const point of route.points) {
+        point.x = clamp(point.x, 64, window.innerWidth - 64);
+        point.y = clamp(point.y, 70, window.innerHeight - 64);
+      }
     }
 
     function tick(now: number) {
       const current = motionRef.current;
+      const route = routeRef.current;
+      const origin = { x: current.x, y: current.y };
+
+      while (
+        route.points.length > 0 &&
+        distanceBetween(origin, route.points[0]) < ROUTE_CONSUME_RADIUS
+      ) {
+        route.points.shift();
+      }
+
+      if (route.points.length > 0) {
+        current.targetX = route.points[0].x;
+        current.targetY = route.points[0].y;
+      } else {
+        current.targetX = current.x;
+        current.targetY = current.y;
+      }
+
       const dx = current.targetX - current.x;
       const dy = current.targetY - current.y;
       const distance = Math.hypot(dx, dy);
@@ -150,6 +291,15 @@ export function PostboyVespaChaser() {
       riderElement.style.transform = `translate3d(${current.x}px, ${current.y}px, 0)`;
       spriteElement.style.transform = `translate(-50%, -50%) scaleX(${current.facing}) translateY(${bob}px) rotate(${lean}deg)`;
       trailsElement.style.setProperty("--postboy-trail-opacity", trailOpacity.toFixed(3));
+      const routePathData = buildCurvedRoutePath(
+        { x: current.x, y: current.y },
+        visibleRoutePoints({ x: current.x, y: current.y }, route.points, now),
+      );
+      const routeOpacity = clamp(route.points.length / 3, 0, 1);
+      routePathElement.setAttribute("d", routePathData);
+      routeShadowPathElement.setAttribute("d", routePathData);
+      routePathElement.style.opacity = routeOpacity.toFixed(3);
+      routeShadowPathElement.style.opacity = (routeOpacity * 0.72).toFixed(3);
 
       frameRef.current = window.requestAnimationFrame(tick);
     }
@@ -173,38 +323,52 @@ export function PostboyVespaChaser() {
   }
 
   return (
-    <div
-      ref={riderRef}
-      aria-hidden="true"
-      data-testid="postboy-vespa-chaser"
-      className="pointer-events-none fixed right-[7vw] top-28 z-40 hidden w-[clamp(86px,7vw,139px)] select-none opacity-0 transition-opacity duration-300 md:block"
-    >
+    <>
+      <svg
+        aria-hidden="true"
+        data-testid="postboy-route-layer"
+        className="postboy-route-layer"
+      >
+        <path ref={routeShadowPathRef} className="postboy-route-shadow" />
+        <path
+          ref={routePathRef}
+          data-testid="postboy-route-path"
+          className="postboy-route-path"
+        />
+      </svg>
       <div
-        ref={spriteRef}
-        className="relative drop-shadow-[0_18px_24px_rgba(17,24,39,0.18)] will-change-transform"
+        ref={riderRef}
+        aria-hidden="true"
+        data-testid="postboy-vespa-chaser"
+        className="pointer-events-none fixed right-[7vw] top-28 z-40 hidden w-[clamp(86px,7vw,139px)] select-none opacity-0 transition-opacity duration-300 md:block"
       >
         <div
-          ref={trailsRef}
-          data-testid="postboy-motion-trails"
-          className="postboy-motion-trails"
+          ref={spriteRef}
+          className="relative drop-shadow-[0_18px_24px_rgba(17,24,39,0.18)] will-change-transform"
         >
-          <span className="postboy-speed-haze" />
-          <span className="postboy-wind-trail postboy-wind-trail-long" />
-          <span className="postboy-wind-trail postboy-wind-trail-mid" />
-          <span className="postboy-wind-trail postboy-wind-trail-short" />
-          <span className="postboy-cloud-puff postboy-cloud-puff-one" />
-          <span className="postboy-cloud-puff postboy-cloud-puff-two" />
+          <div
+            ref={trailsRef}
+            data-testid="postboy-motion-trails"
+            className="postboy-motion-trails"
+          >
+            <span className="postboy-speed-haze" />
+            <span className="postboy-wind-trail postboy-wind-trail-long" />
+            <span className="postboy-wind-trail postboy-wind-trail-mid" />
+            <span className="postboy-wind-trail postboy-wind-trail-short" />
+            <span className="postboy-cloud-puff postboy-cloud-puff-one" />
+            <span className="postboy-cloud-puff postboy-cloud-puff-two" />
+          </div>
+          <Image
+            src="/marketing/postboy-loading-vespa.png"
+            alt=""
+            width={POSTBOY_SIZE.width}
+            height={POSTBOY_SIZE.height}
+            sizes="139px"
+            className="relative z-10 h-auto w-full"
+            priority
+          />
         </div>
-        <Image
-          src="/marketing/postboy-loading-vespa.png"
-          alt=""
-          width={POSTBOY_SIZE.width}
-          height={POSTBOY_SIZE.height}
-          sizes="139px"
-          className="relative z-10 h-auto w-full"
-          priority
-        />
       </div>
-    </div>
+    </>
   );
 }

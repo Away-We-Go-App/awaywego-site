@@ -81,7 +81,7 @@ test("postboy vespa starts near the hero video and follows the mouse", async ({
   expect(startBox.y).toBeLessThan(180);
   expect(startBox.width).toBeGreaterThan(90);
 
-  await page.mouse.move(220, 520);
+  await page.mouse.move(220, 520, { steps: 12 });
 
   await expect
     .poll(async () => {
@@ -94,6 +94,17 @@ test("postboy vespa starts near the hero video and follows the mouse", async ({
       return startBox.x - box.x;
     })
     .toBeGreaterThan(20);
+
+  const routePath = page.getByTestId("postboy-route-path");
+
+  await expect
+    .poll(async () => routePath.getAttribute("d"))
+    .toMatch(/[LQ]/);
+  await expect
+    .poll(async () =>
+      routePath.evaluate((element) => Number(getComputedStyle(element).opacity)),
+    )
+    .toBeGreaterThan(0.1);
 
   const trails = page.getByTestId("postboy-motion-trails");
 
@@ -109,6 +120,7 @@ test("postboy vespa respects reduced motion", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByTestId("postboy-vespa-chaser")).toHaveCount(0);
+  await expect(page.getByTestId("postboy-route-layer")).toHaveCount(0);
 });
 
 test("apple app site association exposes referral invite paths", async ({
