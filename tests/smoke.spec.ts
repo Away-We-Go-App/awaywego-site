@@ -79,6 +79,7 @@ test("postboy vespa starts near the hero video and follows the mouse", async ({
 
   expect(startBox.x).toBeGreaterThan(900);
   expect(startBox.y).toBeLessThan(180);
+  expect(startBox.width).toBeGreaterThan(90);
 
   await page.mouse.move(220, 520);
 
@@ -93,6 +94,14 @@ test("postboy vespa starts near the hero video and follows the mouse", async ({
       return startBox.x - box.x;
     })
     .toBeGreaterThan(20);
+
+  const trails = page.getByTestId("postboy-motion-trails");
+
+  await expect
+    .poll(async () =>
+      trails.evaluate((element) => Number(getComputedStyle(element).opacity)),
+    )
+    .toBeGreaterThan(0.1);
 });
 
 test("postboy vespa respects reduced motion", async ({ page }) => {

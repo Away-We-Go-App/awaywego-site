@@ -38,6 +38,7 @@ export function PostboyVespaChaser() {
   const frameRef = useRef<number | null>(null);
   const riderRef = useRef<HTMLDivElement>(null);
   const spriteRef = useRef<HTMLDivElement>(null);
+  const trailsRef = useRef<HTMLDivElement>(null);
   const motionRef = useRef<MotionState>({
     facing: 1,
     targetX: 0,
@@ -73,13 +74,15 @@ export function PostboyVespaChaser() {
 
     const rider = riderRef.current;
     const sprite = spriteRef.current;
+    const trails = trailsRef.current;
 
-    if (!rider || !sprite) {
+    if (!rider || !sprite || !trails) {
       return;
     }
 
     const riderElement = rider;
     const spriteElement = sprite;
+    const trailsElement = trails;
     const start = initialPosition();
     motionRef.current = {
       facing: 1,
@@ -142,9 +145,11 @@ export function PostboyVespaChaser() {
 
       const bob = Math.sin(now / 105) * Math.min(3.4, speed * 0.52);
       const lean = clamp(current.velocityY * 0.75, -7, 7);
+      const trailOpacity = clamp((speed - 0.2) / 2.4, 0, 1);
 
       riderElement.style.transform = `translate3d(${current.x}px, ${current.y}px, 0)`;
       spriteElement.style.transform = `translate(-50%, -50%) scaleX(${current.facing}) translateY(${bob}px) rotate(${lean}deg)`;
+      trailsElement.style.setProperty("--postboy-trail-opacity", trailOpacity.toFixed(3));
 
       frameRef.current = window.requestAnimationFrame(tick);
     }
@@ -172,19 +177,31 @@ export function PostboyVespaChaser() {
       ref={riderRef}
       aria-hidden="true"
       data-testid="postboy-vespa-chaser"
-      className="pointer-events-none fixed right-[7vw] top-28 z-40 hidden w-[clamp(72px,5.8vw,116px)] select-none opacity-0 transition-opacity duration-300 md:block"
+      className="pointer-events-none fixed right-[7vw] top-28 z-40 hidden w-[clamp(86px,7vw,139px)] select-none opacity-0 transition-opacity duration-300 md:block"
     >
       <div
         ref={spriteRef}
-        className="drop-shadow-[0_16px_22px_rgba(17,24,39,0.18)] will-change-transform"
+        className="relative drop-shadow-[0_18px_24px_rgba(17,24,39,0.18)] will-change-transform"
       >
+        <div
+          ref={trailsRef}
+          data-testid="postboy-motion-trails"
+          className="postboy-motion-trails"
+        >
+          <span className="postboy-speed-haze" />
+          <span className="postboy-wind-trail postboy-wind-trail-long" />
+          <span className="postboy-wind-trail postboy-wind-trail-mid" />
+          <span className="postboy-wind-trail postboy-wind-trail-short" />
+          <span className="postboy-cloud-puff postboy-cloud-puff-one" />
+          <span className="postboy-cloud-puff postboy-cloud-puff-two" />
+        </div>
         <Image
           src="/marketing/postboy-loading-vespa.png"
           alt=""
           width={POSTBOY_SIZE.width}
           height={POSTBOY_SIZE.height}
-          sizes="116px"
-          className="h-auto w-full"
+          sizes="139px"
+          className="relative z-10 h-auto w-full"
           priority
         />
       </div>
