@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { MarketingDemoVideo } from "@/components/marketing-demo-video";
+import { PostboyVespaChaser } from "@/components/postboy-vespa-chaser";
 import { siteCopy } from "@/content/site-copy";
 
 const legalLinks = [
@@ -80,6 +81,7 @@ export function MarketingHome() {
           </div>
         </section>
       </div>
+      <PostboyVespaChaser />
     </main>
   );
 }

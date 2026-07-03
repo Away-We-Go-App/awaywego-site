@@ -60,6 +60,48 @@ test("referral invite page preserves the code and links into the app", async ({
   ).toHaveAttribute("href", "awaywego://invite/FRIEND15");
 });
 
+test("postboy vespa starts near the hero video and follows the mouse", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/");
+
+  const postboy = page.getByTestId("postboy-vespa-chaser");
+  await expect(postboy).toBeVisible();
+
+  const startBox = await postboy.boundingBox();
+
+  expect(startBox).not.toBeNull();
+
+  if (!startBox) {
+    throw new Error("Postboy Vespa did not render.");
+  }
+
+  expect(startBox.x).toBeGreaterThan(900);
+  expect(startBox.y).toBeLessThan(180);
+
+  await page.mouse.move(220, 520);
+
+  await expect
+    .poll(async () => {
+      const box = await postboy.boundingBox();
+
+      if (!box) {
+        return 0;
+      }
+
+      return startBox.x - box.x;
+    })
+    .toBeGreaterThan(20);
+});
+
+test("postboy vespa respects reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+
+  await expect(page.getByTestId("postboy-vespa-chaser")).toHaveCount(0);
+});
+
 test("apple app site association exposes referral invite paths", async ({
   request,
 }) => {
