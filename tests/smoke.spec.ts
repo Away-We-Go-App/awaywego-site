@@ -96,6 +96,20 @@ test("postboy vespa starts near the hero video and follows the mouse", async ({
     )
     .toBeGreaterThan(0.1);
 
+  await page.waitForTimeout(320);
+  const fixedRoutePath = await routePath.getAttribute("d");
+
+  expect(fixedRoutePath).not.toBeNull();
+
+  if (!fixedRoutePath) {
+    throw new Error("Postboy route did not render.");
+  }
+
+  await page.waitForTimeout(300);
+  await expect
+    .poll(async () => routePath.getAttribute("d"))
+    .toBe(fixedRoutePath);
+
   await page.mouse.move(220, 520, { steps: 12 });
 
   await expect

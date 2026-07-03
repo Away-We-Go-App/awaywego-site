@@ -24,6 +24,7 @@ type RoutePoint = Point & {
 
 type RouteState = {
   lastAddedAt: number;
+  origin: Point | null;
   points: RoutePoint[];
 };
 
@@ -131,6 +132,7 @@ export function PostboyVespaChaser() {
   });
   const routeRef = useRef<RouteState>({
     lastAddedAt: 0,
+    origin: null,
     points: [],
   });
 
@@ -184,6 +186,7 @@ export function PostboyVespaChaser() {
     };
     routeRef.current = {
       lastAddedAt: 0,
+      origin: null,
       points: [],
     };
 
@@ -198,10 +201,11 @@ export function PostboyVespaChaser() {
       const current = motionRef.current;
       const route = routeRef.current;
       const nextPoint = { x: event.clientX, y: event.clientY };
-      const lastPoint = route.points[route.points.length - 1] ?? {
+      const routeOrigin = route.origin ?? {
         x: current.x,
         y: current.y,
       };
+      const lastPoint = route.points[route.points.length - 1] ?? routeOrigin;
       const distance = distanceBetween(lastPoint, nextPoint);
       const elapsed = now - route.lastAddedAt;
       const isFirstRoutePoint = route.points.length === 0;
@@ -218,6 +222,7 @@ export function PostboyVespaChaser() {
         return;
       }
 
+      route.origin = routeOrigin;
       route.points.push({
         ...nextPoint,
         createdAt: isFirstRoutePoint ? now - ROUTE_REVEAL_MS * 0.68 : now - 54,
@@ -225,7 +230,11 @@ export function PostboyVespaChaser() {
       route.lastAddedAt = now;
 
       if (route.points.length > ROUTE_MAX_POINTS) {
-        route.points.splice(0, route.points.length - ROUTE_MAX_POINTS);
+        const removedPoints = route.points.splice(
+          0,
+          route.points.length - ROUTE_MAX_POINTS,
+        );
+        route.origin = removedPoints[removedPoints.length - 1] ?? route.origin;
       }
     }
 
@@ -237,6 +246,11 @@ export function PostboyVespaChaser() {
       current.targetX = clamp(current.targetX, 64, window.innerWidth - 64);
       current.targetY = clamp(current.targetY, 70, window.innerHeight - 64);
 
+      if (route.origin) {
+        route.origin.x = clamp(route.origin.x, 64, window.innerWidth - 64);
+        route.origin.y = clamp(route.origin.y, 70, window.innerHeight - 64);
+      }
+
       for (const point of route.points) {
         point.x = clamp(point.x, 64, window.innerWidth - 64);
         point.y = clamp(point.y, 70, window.innerHeight - 64);
@@ -246,13 +260,14 @@ export function PostboyVespaChaser() {
     function tick(now: number) {
       const current = motionRef.current;
       const route = routeRef.current;
-      const origin = { x: current.x, y: current.y };
+      const riderPosition = { x: current.x, y: current.y };
 
       while (
         route.points.length > 0 &&
-        distanceBetween(origin, route.points[0]) < ROUTE_CONSUME_RADIUS
+        distanceBetween(riderPosition, route.points[0]) < ROUTE_CONSUME_RADIUS
       ) {
-        route.points.shift();
+        const consumedPoint = route.points.shift();
+        route.origin = route.points.length > 0 && consumedPoint ? consumedPoint : null;
       }
 
       if (route.points.length > 0) {
@@ -298,10 +313,12 @@ export function PostboyVespaChaser() {
       riderElement.style.transform = `translate3d(${current.x}px, ${current.y}px, 0)`;
       spriteElement.style.transform = `translate(-50%, -50%) scaleX(${current.facing}) translateY(${bob}px) rotate(${lean}deg)`;
       trailsElement.style.setProperty("--postboy-trail-opacity", trailOpacity.toFixed(3));
-      const routePathData = buildCurvedRoutePath(
-        { x: current.x, y: current.y },
-        visibleRoutePoints({ x: current.x, y: current.y }, route.points, now),
-      );
+      const routePathData = route.origin
+        ? buildCurvedRoutePath(
+            route.origin,
+            visibleRoutePoints(route.origin, route.points, now),
+          )
+        : "";
       const routeOpacity =
         route.points.length > 0 ? clamp(0.56 + route.points.length * 0.16, 0, 1) : 0;
       routePathElement.setAttribute("d", routePathData);
