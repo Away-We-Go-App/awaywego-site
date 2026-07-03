@@ -81,6 +81,21 @@ test("postboy vespa starts near the hero video and follows the mouse", async ({
   expect(startBox.y).toBeLessThan(180);
   expect(startBox.width).toBeGreaterThan(90);
 
+  const routePath = page.getByTestId("postboy-route-path");
+
+  await page.mouse.move(980, 220);
+
+  await expect
+    .poll(async () => routePath.getAttribute("d"), { timeout: 600 })
+    .toMatch(/[LQ]/);
+  await expect
+    .poll(
+      async () =>
+        routePath.evaluate((element) => Number(getComputedStyle(element).opacity)),
+      { timeout: 600 },
+    )
+    .toBeGreaterThan(0.1);
+
   await page.mouse.move(220, 520, { steps: 12 });
 
   await expect
@@ -94,8 +109,6 @@ test("postboy vespa starts near the hero video and follows the mouse", async ({
       return startBox.x - box.x;
     })
     .toBeGreaterThan(20);
-
-  const routePath = page.getByTestId("postboy-route-path");
 
   await expect
     .poll(async () => routePath.getAttribute("d"))

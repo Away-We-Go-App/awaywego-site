@@ -33,10 +33,11 @@ const POSTBOY_SIZE = {
 } as const;
 
 const ROUTE_MAX_POINTS = 22;
-const ROUTE_POINT_DISTANCE = 54;
-const ROUTE_POINT_FAST_DISTANCE = 150;
-const ROUTE_POINT_INTERVAL = 120;
-const ROUTE_REVEAL_MS = 520;
+const ROUTE_FIRST_POINT_DISTANCE = 14;
+const ROUTE_POINT_DISTANCE = 34;
+const ROUTE_POINT_FAST_DISTANCE = 96;
+const ROUTE_POINT_INTERVAL = 72;
+const ROUTE_REVEAL_MS = 260;
 const ROUTE_CONSUME_RADIUS = 46;
 
 function clamp(value: number, min: number, max: number) {
@@ -203,17 +204,23 @@ export function PostboyVespaChaser() {
       };
       const distance = distanceBetween(lastPoint, nextPoint);
       const elapsed = now - route.lastAddedAt;
+      const isFirstRoutePoint = route.points.length === 0;
+      const requiredDistance = isFirstRoutePoint
+        ? ROUTE_FIRST_POINT_DISTANCE
+        : ROUTE_POINT_DISTANCE;
 
       if (
-        distance < ROUTE_POINT_DISTANCE ||
-        (elapsed < ROUTE_POINT_INTERVAL && distance < ROUTE_POINT_FAST_DISTANCE)
+        distance < requiredDistance ||
+        (!isFirstRoutePoint &&
+          elapsed < ROUTE_POINT_INTERVAL &&
+          distance < ROUTE_POINT_FAST_DISTANCE)
       ) {
         return;
       }
 
       route.points.push({
         ...nextPoint,
-        createdAt: now,
+        createdAt: isFirstRoutePoint ? now - ROUTE_REVEAL_MS * 0.68 : now - 54,
       });
       route.lastAddedAt = now;
 
@@ -295,7 +302,8 @@ export function PostboyVespaChaser() {
         { x: current.x, y: current.y },
         visibleRoutePoints({ x: current.x, y: current.y }, route.points, now),
       );
-      const routeOpacity = clamp(route.points.length / 3, 0, 1);
+      const routeOpacity =
+        route.points.length > 0 ? clamp(0.56 + route.points.length * 0.16, 0, 1) : 0;
       routePathElement.setAttribute("d", routePathData);
       routeShadowPathElement.setAttribute("d", routePathData);
       routePathElement.style.opacity = routeOpacity.toFixed(3);
