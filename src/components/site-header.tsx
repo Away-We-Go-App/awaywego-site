@@ -48,10 +48,10 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
             </Link>
           ))}
           <Link
-            href="/#waitlist"
+            href={siteCopy.appStoreUrl}
             className="rounded-md border border-[var(--navy)] px-4 py-2 text-[0.72rem] uppercase tracking-[0.22em] [font-family:var(--font-accent)] transition-colors hover:border-[var(--brick)] hover:text-[var(--brick)]"
           >
-            Join the list
+            App Store
           </Link>
         </nav>
       </div>
