@@ -17,7 +17,7 @@ export default function SupportPage() {
     >
       <p>
         For help with Away We Go, email{" "}
-        <a className="underline decoration-[var(--brick)]" href={`mailto:${siteCopy.supportEmail}`}>
+        <a href={`mailto:${siteCopy.supportEmail}`}>
           {siteCopy.supportEmail}
         </a>
         .

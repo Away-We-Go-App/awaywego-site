@@ -26,20 +26,56 @@ test("homepage and legal pages render the required public content", async ({
   await expect(page.getByRole("link", { name: "Support" })).toBeVisible();
 
   await page.goto("/privacy");
-  await expect(page.getByRole("heading", { name: "Privacy Policy" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "App Store" })).toHaveAttribute(
-    "href",
-    /apps\.apple\.com/,
-  );
+  await expect(
+    page.getByRole("heading", { name: "Privacy Policy" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("We do not sell your personal information."),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Home", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Away We Go home" }),
+  ).toHaveAttribute("href", "/");
+  await expect(page.getByText("travel journal app")).toHaveCount(0);
+  await expect(page.getByText("Join the list")).toHaveCount(0);
+  await expect(page.getByText("Made for wanderers.")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Contact" })).toHaveCount(0);
+
+  await page.goto("/privacy");
+  await page.getByRole("link", { name: "Home", exact: true }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Your trip should be a coffee table book.",
+    }),
+  ).toBeVisible();
+
+  await page.goto("/privacy");
+  await expect(
+    page.getByRole("link", { name: "Support", exact: true }),
+  ).toHaveAttribute("href", "/support");
 
   await page.goto("/terms");
   await expect(
     page.getByRole("heading", { name: "Terms of Service" }),
   ).toBeVisible();
+  await expect(
+    page.getByText("You are responsible for the content"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Home", exact: true }),
+  ).toBeVisible();
 
   await page.goto("/support");
   await expect(page.getByRole("heading", { name: "Support" })).toBeVisible();
   await expect(page.getByText("support@awaywegoapp.com")).toBeVisible();
+  await expect(
+    page.getByText("Include as much detail as you can"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Home", exact: true }),
+  ).toBeVisible();
 });
 
 test("referral invite page preserves the code and links into the app", async ({
