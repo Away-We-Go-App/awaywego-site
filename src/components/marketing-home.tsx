@@ -18,7 +18,7 @@ export function MarketingHome() {
   return (
     <main className="relative isolate min-h-screen overflow-x-hidden bg-[#f8f7f4] text-[#111827] lg:h-screen lg:overflow-hidden">
       <div className="mx-auto flex min-h-screen w-full max-w-[1800px] flex-col px-6 pb-7 pt-5 sm:px-9 lg:h-screen lg:px-9 lg:py-7">
-        <header className="relative z-20 flex items-center">
+        <header className="relative z-20 flex items-center justify-center sm:justify-start">
           <Link href="/" aria-label="Away We Go home" className="shrink-0">
             <Image
               src="/marketing/away-we-go-logo-primary.svg"
