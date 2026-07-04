@@ -2,7 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { MarketingDemoVideo } from "@/components/marketing-demo-video";
-import { PostboyVespaChaser } from "@/components/postboy-vespa-chaser";
+import {
+  PostboyMobileGameEntry,
+  PostboyVespaChaser,
+} from "@/components/postboy-vespa-chaser";
 import { siteCopy } from "@/content/site-copy";
 
 const legalLinks = [
@@ -74,7 +77,8 @@ export function MarketingHome() {
             </div>
           </div>
 
-          <div className="order-1 flex min-w-0 items-center justify-center lg:order-2 lg:min-h-[calc(100vh-9rem)] lg:justify-end lg:pb-7">
+          <div className="order-1 flex min-w-0 flex-col items-center justify-center gap-4 lg:order-2 lg:min-h-[calc(100vh-9rem)] lg:items-end lg:justify-end lg:gap-0 lg:pb-7">
+            <PostboyMobileGameEntry />
             <div className="relative aspect-square w-full max-w-[min(100%,72vh)] overflow-hidden rounded-[26px] bg-[#efe7dc] shadow-[0_38px_95px_rgba(17,24,39,0.14)] sm:rounded-[32px] lg:max-w-[min(56vw,calc(100vh-9.5rem),980px)]">
               <MarketingDemoVideo
                 posterSrc="/marketing/onboarding-product-book-builder.png"

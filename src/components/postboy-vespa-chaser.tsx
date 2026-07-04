@@ -114,6 +114,7 @@ const OBSTACLE_ROLLING_COLLISION_RADIUS = 96;
 const OBSTACLE_STUN_MS = 1250;
 const OBSTACLE_ROLLING_STUN_MS = 1500;
 const POSTBOY_HOME_ANCHOR_SELECTOR = "[data-postboy-home-anchor]";
+const POSTBOY_MOBILE_OPEN_EVENT = "postboy:mobile-game-open";
 const MOBILE_POSTCARD_CATCH_RADIUS = 132;
 const MOBILE_ROUTE_CONSUME_RADIUS = 38;
 const MOBILE_OBSTACLE_COLLISION_RADIUS = 70;
@@ -859,6 +860,52 @@ function RewardModal({
         </div>
       </div>
     </div>
+  );
+}
+
+export function PostboyMobileGameEntry() {
+  const [isAvailable, setIsAvailable] = useState(false);
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia(
+      "(max-width: 767px), (hover: none) and (pointer: coarse)",
+    );
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    function syncAvailable() {
+      setIsAvailable(mobileQuery.matches && !motionQuery.matches);
+    }
+
+    syncAvailable();
+    mobileQuery.addEventListener("change", syncAvailable);
+    motionQuery.addEventListener("change", syncAvailable);
+
+    return () => {
+      mobileQuery.removeEventListener("change", syncAvailable);
+      motionQuery.removeEventListener("change", syncAvailable);
+    };
+  }, []);
+
+  if (!isAvailable) {
+    return null;
+  }
+
+  return (
+    <button
+      type="button"
+      data-testid="postboy-mobile-entry"
+      className="postboy-mobile-entry"
+      onClick={() => window.dispatchEvent(new Event(POSTBOY_MOBILE_OPEN_EVENT))}
+    >
+      <span>Play to win a free book</span>
+      <svg
+        className="postboy-mobile-entry-arrow"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path d="M12.5 4.8 19.7 12l-7.2 7.2-1.4-1.4 4.8-4.8H4.3v-2h11.6l-4.8-4.8 1.4-1.4z" />
+      </svg>
+    </button>
   );
 }
 
@@ -1819,11 +1866,6 @@ function MobilePostboyGame() {
     }
   }
 
-  function openTutorial() {
-    resetVisibleGameState();
-    setPhase("tutorial");
-  }
-
   function closeMobileGame() {
     resetVisibleGameState();
     setPhase("closed");
@@ -1924,6 +1966,22 @@ function MobilePostboyGame() {
       motionQuery.removeEventListener("change", syncAvailable);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isAvailable) {
+      return;
+    }
+
+    function handleOpenMobileGame() {
+      setPhase("tutorial");
+    }
+
+    window.addEventListener(POSTBOY_MOBILE_OPEN_EVENT, handleOpenMobileGame);
+
+    return () => {
+      window.removeEventListener(POSTBOY_MOBILE_OPEN_EVENT, handleOpenMobileGame);
+    };
+  }, [isAvailable]);
 
   useEffect(() => {
     if (phase === "closed" || !isAvailable) {
@@ -2487,17 +2545,6 @@ function MobilePostboyGame() {
 
   return (
     <>
-      {phase === "closed" ? (
-        <button
-          type="button"
-          data-testid="postboy-mobile-entry"
-          className="postboy-mobile-entry"
-          onClick={openTutorial}
-        >
-          <span className="postboy-mobile-entry-title">Play to Win a Free Book</span>
-          <span className="postboy-mobile-entry-meta">10 postcards · 30s</span>
-        </button>
-      ) : null}
       {phase !== "closed" ? (
         <div
           aria-modal="true"
