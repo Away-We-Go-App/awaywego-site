@@ -124,6 +124,7 @@ test("postboy vespa starts above the headline, follows the mouse, and returns ho
     name: "Your trip should be a coffee table book.",
   });
   const postboy = page.getByTestId("postboy-vespa-chaser");
+  const sprite = page.getByTestId("postboy-vespa-sprite");
   await expect(postboy).toBeVisible();
 
   const headlineBox = await headline.boundingBox();
@@ -136,13 +137,24 @@ test("postboy vespa starts above the headline, follows the mouse, and returns ho
     throw new Error("Postboy Vespa or headline did not render.");
   }
 
-  expect(startBox.x).toBeLessThan(headlineBox.x + 120);
+  expect(startBox.x).toBeGreaterThan(headlineBox.x + 20);
+  expect(startBox.x).toBeLessThan(headlineBox.x + 160);
   expect(startBox.y).toBeLessThan(headlineBox.y + 20);
   expect(startBox.y + startBox.height).toBeLessThan(
     headlineBox.y + headlineBox.height * 0.72,
   );
   expect(startBox.y + startBox.height).toBeGreaterThan(headlineBox.y - 80);
   expect(startBox.width).toBeGreaterThan(90);
+  await expect
+    .poll(async () =>
+      sprite.evaluate((element) => {
+        const transform = getComputedStyle(element).transform;
+        const match = transform.match(/matrix\(([^,]+)/);
+
+        return Number(match?.[1] ?? 1);
+      }),
+    )
+    .toBeLessThan(-0.95);
 
   const routePath = page.getByTestId("postboy-route-path");
 
@@ -220,6 +232,16 @@ test("postboy vespa starts above the headline, follows the mouse, and returns ho
       { timeout: 7000 },
     )
     .toBeLessThan(90);
+  await expect
+    .poll(async () =>
+      sprite.evaluate((element) => {
+        const transform = getComputedStyle(element).transform;
+        const match = transform.match(/matrix\(([^,]+)/);
+
+        return Number(match?.[1] ?? 1);
+      }),
+    )
+    .toBeLessThan(-0.95);
 });
 
 test("postboy postcard game spawns a target and increments the score", async ({

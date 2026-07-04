@@ -296,7 +296,7 @@ function homePosition() {
   if (anchor) {
     const rect = anchor.getBoundingClientRect();
     const x = clamp(
-      rect.left + 4,
+      rect.left + 62,
       38,
       window.innerWidth - postboySize.width - 38,
     );
@@ -522,7 +522,7 @@ export function PostboyVespaChaser() {
   const routePathRef = useRef<SVGPathElement>(null);
   const routeShadowPathRef = useRef<SVGPathElement>(null);
   const motionRef = useRef<MotionState>({
-    facing: 1,
+    facing: -1,
     targetX: 0,
     targetY: 0,
     velocityX: 0,
@@ -647,7 +647,7 @@ export function PostboyVespaChaser() {
     const start = homePosition();
     homePositionRef.current = start;
     motionRef.current = {
-      facing: 1,
+      facing: -1,
       targetX: start.x,
       targetY: start.y,
       velocityX: 0,
@@ -1063,6 +1063,10 @@ export function PostboyVespaChaser() {
           isReturningHomeRef.current = false;
         }
 
+        current.facing = -1;
+        current.velocityX = 0;
+        current.velocityY = 0;
+
         return;
       }
 
@@ -1411,6 +1415,7 @@ export function PostboyVespaChaser() {
       >
         <div
           ref={spriteRef}
+          data-testid="postboy-vespa-sprite"
           className="relative drop-shadow-[0_18px_24px_rgba(17,24,39,0.18)] will-change-transform"
         >
           <div
