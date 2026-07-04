@@ -26,12 +26,12 @@ export function MarketingHome() {
               width={304}
               height={82}
               priority
-              className="h-auto w-40 sm:w-52 lg:w-64"
+              className="h-auto w-48 sm:w-52 lg:w-64"
             />
           </Link>
         </header>
 
-        <section className="relative z-10 grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-10 pt-10 sm:pt-12 lg:grid-cols-[minmax(330px,0.44fr)_minmax(560px,0.56fr)] lg:items-end lg:gap-12 lg:pt-0">
+        <section className="relative z-10 grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-10 pt-5 sm:pt-12 lg:grid-cols-[minmax(330px,0.44fr)_minmax(560px,0.56fr)] lg:items-end lg:gap-12 lg:pt-0">
           <div className="order-2 flex min-w-0 flex-col justify-end pb-0 lg:order-1 lg:min-h-[calc(100vh-10rem)] lg:pb-10">
             <div className="max-w-[580px]">
               <h1
