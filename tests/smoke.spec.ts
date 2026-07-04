@@ -216,7 +216,69 @@ test("postboy vespa starts above the headline, follows the mouse, and returns ho
     )
     .toBeGreaterThan(0.1);
 
+  await page.mouse.move(1100, 620, { steps: 24 });
+
+  await expect
+    .poll(async () => {
+      const box = await postboy.boundingBox();
+
+      if (!box) {
+        return 0;
+      }
+
+      return box.x - startBox.x;
+    })
+    .toBeGreaterThan(140);
+
+  const routeStartAndPostboy = async () => {
+    const routeData = await routePath.getAttribute("d");
+    const box = await postboy.boundingBox();
+    const match = routeData?.match(/^M\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/);
+
+    if (!box || !match) {
+      return null;
+    }
+
+    return {
+      postboy: { x: box.x, y: box.y },
+      routeStart: { x: Number(match[1]), y: Number(match[2]) },
+    };
+  };
+
   await page.waitForTimeout(5200);
+  await expect
+    .poll(async () => routePath.getAttribute("d"), { timeout: 1500 })
+    .toMatch(/[LQ]/);
+
+  const returnStart = await routeStartAndPostboy();
+
+  expect(returnStart).not.toBeNull();
+
+  if (!returnStart) {
+    throw new Error("Postboy return route did not render.");
+  }
+
+  await page.waitForTimeout(260);
+
+  const returnProgress = await routeStartAndPostboy();
+
+  expect(returnProgress).not.toBeNull();
+
+  if (!returnProgress) {
+    throw new Error("Postboy return route disappeared too early.");
+  }
+
+  const postboyReturnDelta = Math.hypot(
+    returnProgress.postboy.x - returnStart.postboy.x,
+    returnProgress.postboy.y - returnStart.postboy.y,
+  );
+  const routeStartDelta = Math.hypot(
+    returnProgress.routeStart.x - returnStart.routeStart.x,
+    returnProgress.routeStart.y - returnStart.routeStart.y,
+  );
+
+  expect(postboyReturnDelta).toBeGreaterThan(8);
+  expect(routeStartDelta).toBeGreaterThan(postboyReturnDelta * 0.55);
 
   await expect
     .poll(
@@ -314,6 +376,114 @@ test("postboy postcard game spawns a target and increments the score", async ({
   await expect(page.getByTestId("postboy-game-count")).toContainText("0/10");
   await expect(page.getByTestId("postboy-game-timer")).toContainText("30s");
   await expect(page.getByTestId("postboy-postcard")).toHaveCount(0);
+});
+
+test("mobile postboy game opens a touch overlay and collects a postcard", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  await expect(page.getByTestId("postboy-game-score")).toHaveCount(0);
+
+  await page.getByTestId("postboy-mobile-entry").click();
+  await expect(page.getByTestId("postboy-mobile-game-overlay")).toBeVisible();
+  await expect(page.getByTestId("postboy-mobile-tutorial")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Start delivery" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Start delivery" }).click();
+  await expect(page.getByTestId("postboy-mobile-hud")).toContainText(
+    "Play to Win a Free Book",
+  );
+  await expect(page.getByTestId("postboy-mobile-game-count")).toContainText(
+    "0/10",
+  );
+  await expect(page.getByTestId("postboy-mobile-game-control")).toHaveAttribute(
+    "aria-label",
+    "Stop postcard game",
+  );
+  await expect(page.getByTestId("postboy-mobile-vespa")).toBeVisible();
+
+  const postcard = page.getByTestId("postboy-mobile-postcard");
+  await expect(postcard).toBeVisible({ timeout: 2500 });
+
+  const postcardBox = await postcard.boundingBox();
+
+  expect(postcardBox).not.toBeNull();
+
+  if (!postcardBox) {
+    throw new Error("Mobile Postboy postcard did not render.");
+  }
+
+  const postcardCenter = {
+    x: postcardBox.x + postcardBox.width / 2,
+    y: postcardBox.y + postcardBox.height / 2,
+  };
+  const routePath = page.getByTestId("postboy-mobile-route-path");
+
+  await page.mouse.move(70, 700);
+  await page.mouse.down();
+  await page.mouse.move(postcardCenter.x, postcardCenter.y, { steps: 24 });
+
+  await expect
+    .poll(async () => routePath.getAttribute("d"), { timeout: 1500 })
+    .toMatch(/[LQ]/);
+
+  await expect
+    .poll(
+      async () => {
+        await page.mouse.move(postcardCenter.x + 1, postcardCenter.y, {
+          steps: 2,
+        });
+        await page.mouse.move(postcardCenter.x - 1, postcardCenter.y, {
+          steps: 2,
+        });
+        const text = await page
+          .getByTestId("postboy-mobile-game-count")
+          .textContent();
+
+        return Number(text?.split("/")[0] ?? 0);
+      },
+      { timeout: 15000 },
+    )
+    .toBeGreaterThan(0);
+  await page.mouse.up();
+
+  await page.getByTestId("postboy-mobile-game-control").click();
+  await expect(page.getByTestId("postboy-mobile-game-overlay")).toHaveCount(0);
+  await expect(page.getByTestId("postboy-mobile-entry")).toBeVisible();
+});
+
+test("mobile postboy game clamps active postcards after viewport resize", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  await page.getByTestId("postboy-mobile-entry").click();
+  await page.getByRole("button", { name: "Start delivery" }).click();
+
+  const postcard = page.getByTestId("postboy-mobile-postcard");
+  await expect(postcard).toBeVisible({ timeout: 2500 });
+
+  const oldTop = await postcard.evaluate((element) =>
+    Number.parseFloat((element as HTMLElement).style.top),
+  );
+
+  await page.setViewportSize({ width: 390, height: 260 });
+
+  const maxVisibleTop = await page.evaluate(() => Math.max(142, window.innerHeight - 112));
+
+  expect(oldTop).toBeGreaterThan(maxVisibleTop);
+  await expect
+    .poll(async () =>
+      postcard.evaluate((element) =>
+        Number.parseFloat((element as HTMLElement).style.top),
+      ),
+    )
+    .toBeLessThanOrEqual(maxVisibleTop);
 });
 
 test("postboy postcard game adds travel obstacles during active play", async ({

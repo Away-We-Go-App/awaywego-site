@@ -2,7 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { MarketingDemoVideo } from "@/components/marketing-demo-video";
-import { PostboyVespaChaser } from "@/components/postboy-vespa-chaser";
+import {
+  PostboyMobileGameEntry,
+  PostboyVespaChaser,
+} from "@/components/postboy-vespa-chaser";
 import { siteCopy } from "@/content/site-copy";
 
 const legalLinks = [
@@ -15,7 +18,7 @@ export function MarketingHome() {
   return (
     <main className="relative isolate min-h-screen overflow-x-hidden bg-[#f8f7f4] text-[#111827] lg:h-screen lg:overflow-hidden">
       <div className="mx-auto flex min-h-screen w-full max-w-[1800px] flex-col px-6 pb-7 pt-5 sm:px-9 lg:h-screen lg:px-9 lg:py-7">
-        <header className="relative z-20 flex items-center">
+        <header className="relative z-20 flex items-center justify-center sm:justify-start">
           <Link href="/" aria-label="Away We Go home" className="shrink-0">
             <Image
               src="/marketing/away-we-go-logo-primary.svg"
@@ -23,12 +26,12 @@ export function MarketingHome() {
               width={304}
               height={82}
               priority
-              className="h-auto w-40 sm:w-52 lg:w-64"
+              className="h-auto w-48 sm:w-52 lg:w-64"
             />
           </Link>
         </header>
 
-        <section className="relative z-10 grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-10 pt-10 sm:pt-12 lg:grid-cols-[minmax(330px,0.44fr)_minmax(560px,0.56fr)] lg:items-end lg:gap-12 lg:pt-0">
+        <section className="relative z-10 grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-10 pt-5 sm:pt-12 lg:grid-cols-[minmax(330px,0.44fr)_minmax(560px,0.56fr)] lg:items-end lg:gap-12 lg:pt-0">
           <div className="order-2 flex min-w-0 flex-col justify-end pb-0 lg:order-1 lg:min-h-[calc(100vh-10rem)] lg:pb-10">
             <div className="max-w-[580px]">
               <h1
@@ -74,7 +77,8 @@ export function MarketingHome() {
             </div>
           </div>
 
-          <div className="order-1 flex min-w-0 items-center justify-center lg:order-2 lg:min-h-[calc(100vh-9rem)] lg:justify-end lg:pb-7">
+          <div className="order-1 flex min-w-0 flex-col items-center justify-center gap-4 lg:order-2 lg:min-h-[calc(100vh-9rem)] lg:items-end lg:justify-end lg:gap-0 lg:pb-7">
+            <PostboyMobileGameEntry />
             <div className="relative aspect-square w-full max-w-[min(100%,72vh)] overflow-hidden rounded-[26px] bg-[#efe7dc] shadow-[0_38px_95px_rgba(17,24,39,0.14)] sm:rounded-[32px] lg:max-w-[min(56vw,calc(100vh-9.5rem),980px)]">
               <MarketingDemoVideo
                 posterSrc="/marketing/onboarding-product-book-builder.png"

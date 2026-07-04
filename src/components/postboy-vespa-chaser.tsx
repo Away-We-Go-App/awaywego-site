@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import type { CSSProperties } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 type Point = {
@@ -114,6 +114,19 @@ const OBSTACLE_ROLLING_COLLISION_RADIUS = 96;
 const OBSTACLE_STUN_MS = 1250;
 const OBSTACLE_ROLLING_STUN_MS = 1500;
 const POSTBOY_HOME_ANCHOR_SELECTOR = "[data-postboy-home-anchor]";
+const POSTBOY_MOBILE_OPEN_EVENT = "postboy:mobile-game-open";
+const MOBILE_POSTCARD_CATCH_RADIUS = 132;
+const MOBILE_POSTCARD_X_MARGIN = 68;
+const MOBILE_POSTCARD_TOP_MARGIN = 142;
+const MOBILE_POSTCARD_BOTTOM_MARGIN = 112;
+const MOBILE_ROUTE_CONSUME_RADIUS = 38;
+const MOBILE_OBSTACLE_COLLISION_RADIUS = 70;
+const MOBILE_ROLLING_COLLISION_RADIUS = 82;
+const MOBILE_STATIC_OBSTACLE_FIRST_DELAY = 4200;
+const MOBILE_STATIC_OBSTACLE_GAP_MS = 2600;
+const MOBILE_ROLLING_OBSTACLE_FIRST_DELAY = 9200;
+const MOBILE_ROLLING_OBSTACLE_GAP_MS = 11800;
+const MOBILE_ROLLING_OBSTACLE_DURATION_MS = 5200;
 
 const POSTCARD_DESTINATIONS: DestinationAsset[] = [
   {
@@ -184,6 +197,19 @@ const POSTCARD_SPAWN_ZONES: PostcardSpawnZone[] = [
   { minX: 0.24, maxX: 0.76, minY: 0.34, maxY: 0.78 },
 ] as const;
 
+const MOBILE_POSTCARD_SPAWN_ZONES: PostcardSpawnZone[] = [
+  { minX: 0.18, maxX: 0.44, minY: 0.2, maxY: 0.32 },
+  { minX: 0.56, maxX: 0.82, minY: 0.22, maxY: 0.34 },
+  { minX: 0.18, maxX: 0.44, minY: 0.38, maxY: 0.5 },
+  { minX: 0.56, maxX: 0.82, minY: 0.4, maxY: 0.52 },
+  { minX: 0.18, maxX: 0.44, minY: 0.56, maxY: 0.68 },
+  { minX: 0.56, maxX: 0.82, minY: 0.58, maxY: 0.7 },
+  { minX: 0.24, maxX: 0.76, minY: 0.72, maxY: 0.82 },
+  { minX: 0.14, maxX: 0.86, minY: 0.3, maxY: 0.64 },
+  { minX: 0.2, maxX: 0.8, minY: 0.46, maxY: 0.78 },
+  { minX: 0.3, maxX: 0.7, minY: 0.24, maxY: 0.76 },
+] as const;
+
 const OBSTACLE_ASSETS: Record<
   GameObstacleKind,
   {
@@ -214,6 +240,7 @@ const OBSTACLE_ASSETS: Record<
 };
 
 type GameStatus = "idle" | "playing" | "won" | "lost";
+type MobileGamePhase = "closed" | "tutorial" | "playing" | "won" | "lost";
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -506,6 +533,409 @@ function createRollingObstacle(now: number, avoidPoints: Point[]): GameObstacle 
   };
 }
 
+function createMobileGamePostcard(
+  sequence: number,
+  deck: DestinationPostcard[],
+  spawnZones: PostcardSpawnZone[],
+  avoidPoints: Point[] = [],
+): GamePostcard | null {
+  const destination = deck[sequence];
+
+  if (!destination) {
+    return null;
+  }
+
+  for (let attempt = 0; attempt < spawnZones.length * 2; attempt += 1) {
+    const spawnZone = spawnZones[(sequence + attempt) % spawnZones.length];
+
+    if (!spawnZone) {
+      continue;
+    }
+
+    const minX = Math.max(MOBILE_POSTCARD_X_MARGIN, window.innerWidth * spawnZone.minX);
+    const maxX = Math.min(
+      window.innerWidth - MOBILE_POSTCARD_X_MARGIN,
+      window.innerWidth * spawnZone.maxX,
+    );
+    const minY = Math.max(
+      MOBILE_POSTCARD_TOP_MARGIN,
+      window.innerHeight * spawnZone.minY,
+    );
+    const maxY = Math.min(
+      window.innerHeight - MOBILE_POSTCARD_BOTTOM_MARGIN,
+      window.innerHeight * spawnZone.maxY,
+    );
+    const x = clamp(
+      minX + Math.random() * Math.max(1, maxX - minX),
+      MOBILE_POSTCARD_X_MARGIN,
+      window.innerWidth - MOBILE_POSTCARD_X_MARGIN,
+    );
+    const y = clamp(
+      minY + Math.random() * Math.max(1, maxY - minY),
+      MOBILE_POSTCARD_TOP_MARGIN,
+      window.innerHeight - MOBILE_POSTCARD_BOTTOM_MARGIN,
+    );
+
+    if (avoidPoints.some((point) => distanceBetween(point, { x, y }) < 156)) {
+      continue;
+    }
+
+    const rotation = [-5, 4, -3, 6, -4, 3][sequence % 6];
+
+    return {
+      ...destination,
+      id: sequence + 1,
+      rotation,
+      status: "active",
+      x,
+      y,
+    };
+  }
+
+  return null;
+}
+
+function isInMobileHudClearance(point: Point) {
+  return point.y < 122;
+}
+
+function createMobileStaticObstacle(
+  kind: "banana-peel" | "open-suitcase",
+  now: number,
+  avoidPoints: Point[],
+): GameObstacle | null {
+  for (let attempt = 0; attempt < 14; attempt += 1) {
+    const point = {
+      x: clamp(
+        74 + Math.random() * Math.max(1, window.innerWidth - 148),
+        74,
+        window.innerWidth - 74,
+      ),
+      y: clamp(
+        150 + Math.random() * Math.max(1, window.innerHeight - 274),
+        150,
+        window.innerHeight - 124,
+      ),
+    };
+
+    if (isInMobileHudClearance(point)) {
+      continue;
+    }
+
+    if (avoidPoints.some((avoidPoint) => distanceBetween(avoidPoint, point) < 150)) {
+      continue;
+    }
+
+    return {
+      ...point,
+      direction: Math.random() > 0.5 ? 1 : -1,
+      duration: 0,
+      endX: point.x,
+      endY: point.y,
+      hit: false,
+      id: Math.floor(now * 10 + attempt),
+      kind,
+      removeAt: now + OBSTACLE_STATIC_VISIBLE_MS + OBSTACLE_EXIT_MS,
+      rotation:
+        kind === "open-suitcase"
+          ? [-7, 4, -3, 6][attempt % 4]
+          : [-12, 9, -7, 8][attempt % 4],
+      startX: point.x,
+      startY: point.y,
+      startedAt: now,
+      status: "active",
+    };
+  }
+
+  return null;
+}
+
+function createMobileRollingObstacle(
+  now: number,
+  avoidPoints: Point[],
+): GameObstacle {
+  const fromLeft = Math.random() > 0.5;
+  const startX = fromLeft ? -124 : window.innerWidth + 124;
+  const endX = fromLeft ? window.innerWidth + 124 : -124;
+  let y = clamp(
+    150 + Math.random() * Math.max(1, window.innerHeight - 288),
+    150,
+    window.innerHeight - 138,
+  );
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    if (
+      !avoidPoints.some((avoidPoint) => Math.abs(avoidPoint.y - y) < 118) &&
+      !isInMobileHudClearance({ x: fromLeft ? window.innerWidth - 96 : 96, y })
+    ) {
+      break;
+    }
+
+    y = clamp(
+      150 + Math.random() * Math.max(1, window.innerHeight - 288),
+      150,
+      window.innerHeight - 138,
+    );
+  }
+
+  return {
+    direction: fromLeft ? 1 : -1,
+    duration: MOBILE_ROLLING_OBSTACLE_DURATION_MS,
+    endX,
+    endY: y,
+    hit: false,
+    id: Math.floor(now * 10),
+    kind: "rolling-luggage",
+    removeAt: now + MOBILE_ROLLING_OBSTACLE_DURATION_MS + 260,
+    rotation: fromLeft ? 3 : -3,
+    startX,
+    startY: y,
+    startedAt: now,
+    status: "active",
+    x: startX,
+    y,
+  };
+}
+
+function mobilePostboyStartPosition(): Point {
+  return {
+    x: clamp(66, 48, window.innerWidth - 48),
+    y: clamp(window.innerHeight - 152, 166, window.innerHeight - 102),
+  };
+}
+
+function clampMobilePostcardPoint(point: Point): Point {
+  return {
+    x: clamp(
+      point.x,
+      MOBILE_POSTCARD_X_MARGIN,
+      Math.max(MOBILE_POSTCARD_X_MARGIN, window.innerWidth - MOBILE_POSTCARD_X_MARGIN),
+    ),
+    y: clamp(
+      point.y,
+      MOBILE_POSTCARD_TOP_MARGIN,
+      Math.max(
+        MOBILE_POSTCARD_TOP_MARGIN,
+        window.innerHeight - MOBILE_POSTCARD_BOTTOM_MARGIN,
+      ),
+    ),
+  };
+}
+
+function PostcardView({
+  postcard,
+  testId = "postboy-postcard",
+}: {
+  postcard: GamePostcard;
+  testId?: string;
+}) {
+  return (
+    <div
+      aria-hidden="true"
+      data-testid={testId}
+      className={`postboy-game-postcard${
+        postcard.status === "caught" ? " postboy-game-postcard-caught" : ""
+      }`}
+      style={
+        {
+          "--postcard-rotation": `${postcard.rotation}deg`,
+          "--postcard-photo-bg": postcard.photoBackground,
+          left: `${postcard.x}px`,
+          top: `${postcard.y}px`,
+        } as CSSProperties
+      }
+    >
+      <div className="postboy-postcard-poof" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+      </div>
+      <div className="postboy-game-postcard-paper">
+        <div className="postboy-game-postcard-photo">
+          <Image
+            src={postcard.imageSrc}
+            alt=""
+            fill
+            sizes="156px"
+            className="postboy-game-postcard-art"
+          />
+        </div>
+        <div className="postboy-game-postcard-caption">{postcard.label}</div>
+      </div>
+    </div>
+  );
+}
+
+function ObstacleView({ obstacle }: { obstacle: GameObstacle }) {
+  const asset = OBSTACLE_ASSETS[obstacle.kind];
+
+  return (
+    <div
+      aria-hidden="true"
+      data-testid="postboy-obstacle"
+      className={`postboy-obstacle postboy-obstacle-${obstacle.kind} postboy-obstacle-${obstacle.status}`}
+      style={
+        {
+          "--obstacle-rotation": `${obstacle.rotation}deg`,
+          "--rolling-duration": `${obstacle.duration}ms`,
+          "--rolling-dx": `${obstacle.endX - obstacle.startX}px`,
+          "--rolling-dy": `${obstacle.endY - obstacle.startY}px`,
+          left: `${obstacle.startX}px`,
+          top: `${obstacle.startY}px`,
+        } as CSSProperties
+      }
+    >
+      <div
+        data-testid={`postboy-obstacle-${obstacle.kind}`}
+        className="postboy-obstacle-visual"
+      >
+        <Image
+          src={asset.imageSrc}
+          alt=""
+          width={asset.width}
+          height={asset.height}
+          sizes={asset.sizes}
+          className="postboy-obstacle-image"
+        />
+      </div>
+    </div>
+  );
+}
+
+function RewardModal({
+  gameStatus,
+  hasCopiedCode,
+  onClose,
+  onCopyCode,
+  onPlayAgain,
+}: {
+  gameStatus: "won" | "lost";
+  hasCopiedCode: boolean;
+  onClose: () => void;
+  onCopyCode: () => void;
+  onPlayAgain: () => void;
+}) {
+  const hasWon = gameStatus === "won";
+
+  return (
+    <div
+      aria-modal="true"
+      aria-label={hasWon ? "Free book unlocked" : "Try again to win a free book"}
+      data-testid="postboy-reward-modal"
+      role="dialog"
+      className="postboy-reward-backdrop"
+    >
+      <div className="postboy-reward-modal">
+        {hasWon ? (
+          <div className="postboy-reward-confetti" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+        ) : null}
+        <button
+          type="button"
+          aria-label="Close postcard game result"
+          className="postboy-reward-close"
+          onClick={onClose}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.7 5.3 12 10.6l5.3-5.3 1.4 1.4-5.3 5.3 5.3 5.3-1.4 1.4-5.3-5.3-5.3 5.3-1.4-1.4 5.3-5.3-5.3-5.3z" />
+          </svg>
+        </button>
+        {!hasWon ? <p className="postboy-reward-kicker">Time&apos;s up</p> : null}
+        <h2>{hasWon ? "Free book unlocked." : "Try again to win a free book."}</h2>
+        {hasWon ? (
+          <>
+            <div className="postboy-reward-postboy" aria-hidden="true">
+              <Image
+                src="/marketing/postboy-onboarding-coffee-table-glory.png"
+                alt=""
+                width={900}
+                height={725}
+                sizes="190px"
+                className="postboy-reward-postboy-image"
+              />
+            </div>
+            <div className="postboy-reward-code">{REWARD_CODE}</div>
+          </>
+        ) : (
+          <p>Postboy needs all 10 postcards before the clock runs out.</p>
+        )}
+        <p className="postboy-reward-fineprint">First order only.</p>
+        <div className="postboy-reward-actions">
+          {hasWon ? (
+            <button type="button" onClick={onCopyCode}>
+              {hasCopiedCode ? "Copied" : "Copy code"}
+            </button>
+          ) : null}
+          <button type="button" onClick={onPlayAgain}>
+            {hasWon ? "Play again" : "Try again"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function PostboyMobileGameEntry() {
+  const [isAvailable, setIsAvailable] = useState(false);
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia(
+      "(max-width: 767px), (hover: none) and (pointer: coarse)",
+    );
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    function syncAvailable() {
+      setIsAvailable(mobileQuery.matches && !motionQuery.matches);
+    }
+
+    syncAvailable();
+    mobileQuery.addEventListener("change", syncAvailable);
+    motionQuery.addEventListener("change", syncAvailable);
+
+    return () => {
+      mobileQuery.removeEventListener("change", syncAvailable);
+      motionQuery.removeEventListener("change", syncAvailable);
+    };
+  }, []);
+
+  if (!isAvailable) {
+    return null;
+  }
+
+  return (
+    <button
+      type="button"
+      data-testid="postboy-mobile-entry"
+      className="postboy-mobile-entry"
+      onClick={() => window.dispatchEvent(new Event(POSTBOY_MOBILE_OPEN_EVENT))}
+    >
+      <span>Play to win a free book</span>
+      <svg
+        className="postboy-mobile-entry-arrow"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path d="M12.5 4.8 19.7 12l-7.2 7.2-1.4-1.4 4.8-4.8H4.3v-2h11.6l-4.8-4.8 1.4-1.4z" />
+      </svg>
+    </button>
+  );
+}
+
 export function PostboyVespaChaser() {
   const [isEnabled, setIsEnabled] = useState(false);
   const [score, setScore] = useState(0);
@@ -607,7 +1037,9 @@ export function PostboyVespaChaser() {
   }
 
   useEffect(() => {
-    const pointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const pointerQuery = window.matchMedia(
+      "(hover: hover) and (pointer: fine) and (min-width: 768px)",
+    );
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     function syncEnabled() {
@@ -1198,6 +1630,13 @@ export function PostboyVespaChaser() {
       current.x = clamp(current.x + current.velocityX, 48, window.innerWidth - 48);
       current.y = clamp(current.y + current.velocityY, 62, window.innerHeight - 48);
 
+      if (isReturningHomeRef.current && route.origin && route.points.length > 0) {
+        route.origin = {
+          x: current.x,
+          y: current.y,
+        };
+      }
+
       if (Math.abs(current.velocityX) > 0.15) {
         current.facing = current.velocityX < 0 ? 1 : -1;
       }
@@ -1274,245 +1713,1051 @@ export function PostboyVespaChaser() {
     };
   }, [isEnabled]);
 
-  if (!isEnabled) {
-    return null;
-  }
-
   const gameComplete = gameStatus === "won" || gameStatus === "lost";
-  const hasWon = gameStatus === "won";
   const isPlaying = gameStatus === "playing";
 
   return (
     <>
-      <div
-        aria-label={`${score} of ${POSTCARD_TOTAL} postcards collected, ${timeLeft} seconds remaining`}
-        data-testid="postboy-game-score"
-        className="postboy-game-score"
-      >
-        <div className="postboy-game-title">Play to Win a Free Book</div>
-        <div className="postboy-game-score-row">
-          <span className="postboy-game-score-group">
-            <span className="postboy-game-score-label">Postcards</span>
-            <strong data-testid="postboy-game-count">{score}/{POSTCARD_TOTAL}</strong>
-          </span>
-          <span className="postboy-game-score-divider" aria-hidden="true" />
-          <span className="postboy-game-score-group">
-            <span className="postboy-game-score-label">Time</span>
-            <strong data-testid="postboy-game-timer">{timeLeft}s</strong>
-          </span>
-          <span className="postboy-game-score-divider" aria-hidden="true" />
-          <button
-            type="button"
-            data-testid="postboy-game-control"
-            className="postboy-game-control"
-            aria-label={isPlaying ? "Stop postcard game" : "Play postcard game"}
-            onClick={isPlaying ? stopGame : () => startGame()}
-          >
-            {isPlaying ? (
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="7" y="7" width="10" height="10" rx="2" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 6.6v10.8L17.4 12 9 6.6z" />
-              </svg>
-            )}
-          </button>
-        </div>
-      </div>
-      {postcard ? (
-        <div
-          aria-hidden="true"
-          data-testid="postboy-postcard"
-          className={`postboy-game-postcard${
-            postcard.status === "caught" ? " postboy-game-postcard-caught" : ""
-          }`}
-          style={
-            {
-              "--postcard-rotation": `${postcard.rotation}deg`,
-              "--postcard-photo-bg": postcard.photoBackground,
-              left: `${postcard.x}px`,
-              top: `${postcard.y}px`,
-            } as CSSProperties
-          }
-        >
-          <div className="postboy-postcard-poof" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="postboy-game-postcard-paper">
-            <div className="postboy-game-postcard-photo">
-              <Image
-                src={postcard.imageSrc}
-                alt=""
-                fill
-                sizes="156px"
-                className="postboy-game-postcard-art"
-              />
-            </div>
-            <div className="postboy-game-postcard-caption">{postcard.label}</div>
-          </div>
-        </div>
-      ) : null}
-      {obstacles.map((obstacle) => {
-        const asset = OBSTACLE_ASSETS[obstacle.kind];
-
-        return (
+      <MobilePostboyGame />
+      {isEnabled ? (
+        <>
           <div
-            key={obstacle.id}
+            aria-label={`${score} of ${POSTCARD_TOTAL} postcards collected, ${timeLeft} seconds remaining`}
+            data-testid="postboy-game-score"
+            className="postboy-game-score"
+          >
+            <div className="postboy-game-title">Play to Win a Free Book</div>
+            <div className="postboy-game-score-row">
+              <span className="postboy-game-score-group">
+                <span className="postboy-game-score-label">Postcards</span>
+                <strong data-testid="postboy-game-count">
+                  {score}/{POSTCARD_TOTAL}
+                </strong>
+              </span>
+              <span className="postboy-game-score-divider" aria-hidden="true" />
+              <span className="postboy-game-score-group">
+                <span className="postboy-game-score-label">Time</span>
+                <strong data-testid="postboy-game-timer">{timeLeft}s</strong>
+              </span>
+              <span className="postboy-game-score-divider" aria-hidden="true" />
+              <button
+                type="button"
+                data-testid="postboy-game-control"
+                className="postboy-game-control"
+                aria-label={isPlaying ? "Stop postcard game" : "Play postcard game"}
+                onClick={isPlaying ? stopGame : () => startGame()}
+              >
+                {isPlaying ? (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="7" y="7" width="10" height="10" rx="2" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 6.6v10.8L17.4 12 9 6.6z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+          {postcard ? <PostcardView postcard={postcard} /> : null}
+          {obstacles.map((obstacle) => (
+            <ObstacleView key={obstacle.id} obstacle={obstacle} />
+          ))}
+          <svg
             aria-hidden="true"
-            data-testid="postboy-obstacle"
-            className={`postboy-obstacle postboy-obstacle-${obstacle.kind} postboy-obstacle-${obstacle.status}`}
-            style={
-              {
-                "--obstacle-rotation": `${obstacle.rotation}deg`,
-                "--rolling-duration": `${obstacle.duration}ms`,
-                "--rolling-dx": `${obstacle.endX - obstacle.startX}px`,
-                "--rolling-dy": `${obstacle.endY - obstacle.startY}px`,
-                left: `${obstacle.startX}px`,
-                top: `${obstacle.startY}px`,
-              } as CSSProperties
-            }
+            data-testid="postboy-route-layer"
+            className="postboy-route-layer"
+          >
+            <path ref={routeShadowPathRef} className="postboy-route-shadow" />
+            <path
+              ref={routePathRef}
+              data-testid="postboy-route-path"
+              className="postboy-route-path"
+            />
+          </svg>
+          <div
+            ref={riderRef}
+            aria-hidden="true"
+            data-stun-kind={postboyStun?.kind ?? "none"}
+            data-testid="postboy-vespa-chaser"
+            className="pointer-events-none fixed right-[7vw] top-28 z-40 hidden w-[clamp(86px,7vw,139px)] select-none opacity-0 transition-opacity duration-300 md:block"
           >
             <div
-              data-testid={`postboy-obstacle-${obstacle.kind}`}
-              className="postboy-obstacle-visual"
+              ref={spriteRef}
+              data-testid="postboy-vespa-sprite"
+              className="relative drop-shadow-[0_18px_24px_rgba(17,24,39,0.18)] will-change-transform"
             >
+              <div
+                ref={trailsRef}
+                data-testid="postboy-motion-trails"
+                className="postboy-motion-trails"
+              >
+                <span className="postboy-speed-haze" />
+                <span className="postboy-wind-trail postboy-wind-trail-long" />
+                <span className="postboy-wind-trail postboy-wind-trail-mid" />
+                <span className="postboy-wind-trail postboy-wind-trail-short" />
+                <span className="postboy-cloud-puff postboy-cloud-puff-one" />
+                <span className="postboy-cloud-puff postboy-cloud-puff-two" />
+              </div>
               <Image
-                src={asset.imageSrc}
+                src="/marketing/postboy-loading-vespa.png"
                 alt=""
-                width={asset.width}
-                height={asset.height}
-                sizes={asset.sizes}
-                className="postboy-obstacle-image"
+                width={POSTBOY_SIZE.width}
+                height={POSTBOY_SIZE.height}
+                sizes="139px"
+                className="relative z-10 h-auto w-full"
+                priority
               />
             </div>
           </div>
+          {gameComplete ? (
+            <RewardModal
+              gameStatus={gameStatus === "won" ? "won" : "lost"}
+              hasCopiedCode={hasCopiedCode}
+              onClose={closeGameResult}
+              onCopyCode={handleCopyCode}
+              onPlayAgain={handlePlayAgain}
+            />
+          ) : null}
+        </>
+      ) : null}
+    </>
+  );
+}
+
+function MobilePostboyGame() {
+  const [isAvailable, setIsAvailable] = useState(false);
+  const [phase, setPhase] = useState<MobileGamePhase>("closed");
+  const [score, setScore] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(GAME_DURATION_SECONDS);
+  const [postcard, setPostcard] = useState<GamePostcard | null>(null);
+  const [obstacles, setObstacles] = useState<GameObstacle[]>([]);
+  const [postboyStun, setPostboyStun] = useState<PostboyStun | null>(null);
+  const [hasCopiedCode, setHasCopiedCode] = useState(false);
+  const frameRef = useRef<number | null>(null);
+  const caughtTimeoutRef = useRef<number | null>(null);
+  const riderRef = useRef<HTMLDivElement>(null);
+  const spriteRef = useRef<HTMLDivElement>(null);
+  const trailsRef = useRef<HTMLDivElement>(null);
+  const routePathRef = useRef<SVGPathElement>(null);
+  const routeShadowPathRef = useRef<SVGPathElement>(null);
+  const motionRef = useRef<MotionState>({
+    facing: -1,
+    targetX: 0,
+    targetY: 0,
+    velocityX: 0,
+    velocityY: 0,
+    x: 0,
+    y: 0,
+  });
+  const routeRef = useRef<RouteState>({
+    lastAddedAt: 0,
+    origin: null,
+    points: [],
+  });
+  const scoreRef = useRef(0);
+  const timeLeftRef = useRef(GAME_DURATION_SECONDS);
+  const gameStatusRef = useRef<GameStatus>("idle");
+  const gameStartedAtRef = useRef<number | null>(null);
+  const postcardRef = useRef<GamePostcard | null>(null);
+  const postcardDeckRef = useRef<DestinationPostcard[]>([]);
+  const postcardSpawnZonesRef = useRef<PostcardSpawnZone[]>([]);
+  const nextPostcardIndexRef = useRef(0);
+  const lastSpawnAtRef = useRef(0);
+  const obstaclesRef = useRef<GameObstacle[]>([]);
+  const nextObstacleIdRef = useRef(1);
+  const nextStaticObstacleAtRef = useRef(Number.POSITIVE_INFINITY);
+  const nextRollingObstacleAtRef = useRef(Number.POSITIVE_INFINITY);
+  const postboyStunRef = useRef<PostboyStun | null>(null);
+  const activePointerIdRef = useRef<number | null>(null);
+
+  function resetVisibleGameState() {
+    scoreRef.current = 0;
+    timeLeftRef.current = GAME_DURATION_SECONDS;
+    gameStatusRef.current = "idle";
+    gameStartedAtRef.current = null;
+    postcardRef.current = null;
+    nextPostcardIndexRef.current = 0;
+    lastSpawnAtRef.current = Number.POSITIVE_INFINITY;
+    obstaclesRef.current = [];
+    postboyStunRef.current = null;
+    routeRef.current = {
+      lastAddedAt: 0,
+      origin: null,
+      points: [],
+    };
+    activePointerIdRef.current = null;
+    setScore(0);
+    setTimeLeft(GAME_DURATION_SECONDS);
+    setPostcard(null);
+    setObstacles([]);
+    setPostboyStun(null);
+    setHasCopiedCode(false);
+
+    if (caughtTimeoutRef.current !== null) {
+      window.clearTimeout(caughtTimeoutRef.current);
+      caughtTimeoutRef.current = null;
+    }
+  }
+
+  function closeMobileGame() {
+    resetVisibleGameState();
+    setPhase("closed");
+  }
+
+  function startMobileGame() {
+    resetVisibleGameState();
+    setPhase("playing");
+  }
+
+  function handleCopyCode() {
+    void navigator.clipboard?.writeText(REWARD_CODE).catch(() => undefined);
+    setHasCopiedCode(true);
+  }
+
+  function addRoutePoint(point: Point) {
+    if (phase !== "playing") {
+      return;
+    }
+
+    const now = performance.now();
+    const current = motionRef.current;
+    const route = routeRef.current;
+    const routeOrigin = route.origin ?? {
+      x: current.x,
+      y: current.y,
+    };
+    const lastPoint = route.points[route.points.length - 1] ?? routeOrigin;
+    const distance = distanceBetween(lastPoint, point);
+    const elapsed = now - route.lastAddedAt;
+    const isFirstRoutePoint = route.points.length === 0;
+
+    if (
+      distance < (isFirstRoutePoint ? 8 : 24) ||
+      (!isFirstRoutePoint && elapsed < 42 && distance < 70)
+    ) {
+      return;
+    }
+
+    route.origin = routeOrigin;
+    route.points.push({
+      x: clamp(point.x, 34, window.innerWidth - 34),
+      y: clamp(point.y, 102, window.innerHeight - 52),
+      createdAt: isFirstRoutePoint ? now - ROUTE_REVEAL_MS * 0.85 : now - 72,
+    });
+    route.lastAddedAt = now;
+
+    if (route.points.length > 18) {
+      const removedPoints = route.points.splice(0, route.points.length - 18);
+      route.origin = removedPoints[removedPoints.length - 1] ?? route.origin;
+    }
+  }
+
+  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (phase !== "playing") {
+      return;
+    }
+
+    event.preventDefault();
+    activePointerIdRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    addRoutePoint({ x: event.clientX, y: event.clientY });
+  }
+
+  function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    if (phase !== "playing" || activePointerIdRef.current !== event.pointerId) {
+      return;
+    }
+
+    event.preventDefault();
+    addRoutePoint({ x: event.clientX, y: event.clientY });
+  }
+
+  function handlePointerUp(event: ReactPointerEvent<HTMLDivElement>) {
+    if (activePointerIdRef.current !== event.pointerId) {
+      return;
+    }
+
+    activePointerIdRef.current = null;
+  }
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia(
+      "(max-width: 767px), (hover: none) and (pointer: coarse)",
+    );
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    function syncAvailable() {
+      setIsAvailable(mobileQuery.matches && !motionQuery.matches);
+    }
+
+    syncAvailable();
+    mobileQuery.addEventListener("change", syncAvailable);
+    motionQuery.addEventListener("change", syncAvailable);
+
+    return () => {
+      mobileQuery.removeEventListener("change", syncAvailable);
+      motionQuery.removeEventListener("change", syncAvailable);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isAvailable) {
+      return;
+    }
+
+    function handleOpenMobileGame() {
+      setPhase("tutorial");
+    }
+
+    window.addEventListener(POSTBOY_MOBILE_OPEN_EVENT, handleOpenMobileGame);
+
+    return () => {
+      window.removeEventListener(POSTBOY_MOBILE_OPEN_EVENT, handleOpenMobileGame);
+    };
+  }, [isAvailable]);
+
+  useEffect(() => {
+    if (phase === "closed" || !isAvailable) {
+      return;
+    }
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyTouchAction = document.body.style.touchAction;
+    const previousDocumentOverscroll = document.documentElement.style.overscrollBehavior;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+    document.documentElement.style.overscrollBehavior = "none";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.touchAction = previousBodyTouchAction;
+      document.documentElement.style.overscrollBehavior = previousDocumentOverscroll;
+    };
+  }, [isAvailable, phase]);
+
+  useEffect(() => {
+    if (phase !== "playing" || !isAvailable) {
+      return;
+    }
+
+    const rider = riderRef.current;
+    const sprite = spriteRef.current;
+    const trails = trailsRef.current;
+    const routePath = routePathRef.current;
+    const routeShadowPath = routeShadowPathRef.current;
+
+    if (!rider || !sprite || !trails || !routePath || !routeShadowPath) {
+      return;
+    }
+
+    const riderElement = rider;
+    const spriteElement = sprite;
+    const trailsElement = trails;
+    const routePathElement = routePath;
+    const routeShadowPathElement = routeShadowPath;
+    const start = mobilePostboyStartPosition();
+    const startAt = performance.now();
+
+    motionRef.current = {
+      facing: -1,
+      targetX: start.x,
+      targetY: start.y,
+      velocityX: 0,
+      velocityY: 0,
+      x: start.x,
+      y: start.y,
+    };
+    routeRef.current = {
+      lastAddedAt: 0,
+      origin: null,
+      points: [],
+    };
+    scoreRef.current = 0;
+    timeLeftRef.current = GAME_DURATION_SECONDS;
+    gameStatusRef.current = "playing";
+    gameStartedAtRef.current = startAt;
+    postcardRef.current = null;
+    postcardDeckRef.current = createPostcardDeck();
+    postcardSpawnZonesRef.current = shuffled(MOBILE_POSTCARD_SPAWN_ZONES);
+    nextPostcardIndexRef.current = 0;
+    lastSpawnAtRef.current = startAt + 260;
+    obstaclesRef.current = [];
+    nextObstacleIdRef.current = 1;
+    nextStaticObstacleAtRef.current = startAt + MOBILE_STATIC_OBSTACLE_FIRST_DELAY;
+    nextRollingObstacleAtRef.current = startAt + MOBILE_ROLLING_OBSTACLE_FIRST_DELAY;
+    postboyStunRef.current = null;
+    activePointerIdRef.current = null;
+    setScore(0);
+    setTimeLeft(GAME_DURATION_SECONDS);
+    setPostcard(null);
+    setObstacles([]);
+    setPostboyStun(null);
+    setHasCopiedCode(false);
+    riderElement.style.transform = `translate3d(${start.x}px, ${start.y}px, 0)`;
+    riderElement.style.opacity = "1";
+
+    function finishGame(status: "won" | "lost") {
+      gameStatusRef.current = status;
+      postcardRef.current = null;
+      obstaclesRef.current = [];
+      postboyStunRef.current = null;
+      routeRef.current = {
+        lastAddedAt: 0,
+        origin: null,
+        points: [],
+      };
+      setPostcard(null);
+      setObstacles([]);
+      setPostboyStun(null);
+      setHasCopiedCode(false);
+      setPhase(status);
+    }
+
+    function publishObstacles(nextObstacles: GameObstacle[]) {
+      obstaclesRef.current = nextObstacles;
+      setObstacles([...nextObstacles]);
+    }
+
+    function obstacleAvoidPoints(now: number, includeObstacles = true) {
+      const points: Point[] = [
+        {
+          x: motionRef.current.x,
+          y: motionRef.current.y,
+        },
+      ];
+
+      if (postcardRef.current?.status === "active") {
+        points.push(postcardRef.current);
+      }
+
+      if (includeObstacles) {
+        for (const obstacle of obstaclesRef.current) {
+          if (obstacle.status === "active") {
+            points.push(obstaclePosition(obstacle, now));
+          }
+        }
+      }
+
+      return points;
+    }
+
+    function spawnStaticObstacles(now: number) {
+      const activeStaticObstacle = obstaclesRef.current.some(
+        (obstacle) =>
+          obstacle.kind !== "rolling-luggage" && obstacle.status === "active",
+      );
+
+      if (activeStaticObstacle) {
+        return;
+      }
+
+      const suitcase = createMobileStaticObstacle(
+        "open-suitcase",
+        now,
+        obstacleAvoidPoints(now),
+      );
+
+      if (!suitcase) {
+        nextStaticObstacleAtRef.current = now + 900;
+        return;
+      }
+
+      const banana = createMobileStaticObstacle("banana-peel", now, [
+        ...obstacleAvoidPoints(now),
+        suitcase,
+      ]);
+
+      if (!banana) {
+        nextStaticObstacleAtRef.current = now + 900;
+        return;
+      }
+
+      publishObstacles([
+        ...obstaclesRef.current,
+        {
+          ...suitcase,
+          id: nextObstacleIdRef.current,
+        },
+        {
+          ...banana,
+          id: nextObstacleIdRef.current + 1,
+        },
+      ]);
+      nextObstacleIdRef.current += 2;
+      nextStaticObstacleAtRef.current =
+        now +
+        OBSTACLE_STATIC_VISIBLE_MS +
+        MOBILE_STATIC_OBSTACLE_GAP_MS +
+        Math.random() * 1100;
+    }
+
+    function spawnRollingObstacle(now: number) {
+      const activeRollingObstacle = obstaclesRef.current.some(
+        (obstacle) =>
+          obstacle.kind === "rolling-luggage" && obstacle.status === "active",
+      );
+
+      if (activeRollingObstacle) {
+        return;
+      }
+
+      const rollingObstacle = createMobileRollingObstacle(
+        now,
+        obstacleAvoidPoints(now),
+      );
+
+      publishObstacles([
+        ...obstaclesRef.current,
+        {
+          ...rollingObstacle,
+          id: nextObstacleIdRef.current,
+        },
+      ]);
+      nextObstacleIdRef.current += 1;
+      nextRollingObstacleAtRef.current =
+        now + MOBILE_ROLLING_OBSTACLE_GAP_MS + Math.random() * 2400;
+    }
+
+    function syncObstacles(now: number) {
+      let didChange = false;
+      const nextObstacles = obstaclesRef.current
+        .map((obstacle) => {
+          if (now >= obstacle.removeAt) {
+            didChange = true;
+
+            return null;
+          }
+
+          if (
+            obstacle.kind !== "rolling-luggage" &&
+            obstacle.status === "active" &&
+            now >= obstacle.startedAt + OBSTACLE_STATIC_VISIBLE_MS
+          ) {
+            didChange = true;
+
+            return {
+              ...obstacle,
+              removeAt: now + OBSTACLE_EXIT_MS,
+              status: "exiting" as const,
+            };
+          }
+
+          return obstacle;
+        })
+        .filter((obstacle): obstacle is GameObstacle => obstacle !== null);
+
+      if (didChange) {
+        publishObstacles(nextObstacles);
+      }
+    }
+
+    function triggerPostboyStun(
+      obstacle: GameObstacle,
+      obstaclePoint: Point,
+      now: number,
+    ) {
+      const current = motionRef.current;
+      const stunDuration =
+        obstacle.kind === "rolling-luggage"
+          ? OBSTACLE_ROLLING_STUN_MS
+          : OBSTACLE_STUN_MS;
+      const direction =
+        obstacle.kind === "rolling-luggage"
+          ? obstacle.direction
+          : current.x < obstaclePoint.x
+            ? -1
+            : 1;
+      const nextStun = {
+        direction,
+        kind: obstacle.kind,
+        startedAt: now,
+        until: now + stunDuration,
+      };
+
+      current.velocityX = direction * (obstacle.kind === "rolling-luggage" ? 7 : 4.5);
+      current.velocityY = obstacle.kind === "open-suitcase" ? -4.5 : 2.6;
+      postboyStunRef.current = nextStun;
+      setPostboyStun(nextStun);
+    }
+
+    function handleObstacleCollisions(now: number) {
+      if (postboyStunRef.current && now < postboyStunRef.current.until) {
+        return;
+      }
+
+      const riderPosition = {
+        x: motionRef.current.x,
+        y: motionRef.current.y,
+      };
+      let didChange = false;
+      const nextObstacles = obstaclesRef.current.map((obstacle) => {
+        if (obstacle.status !== "active" || obstacle.hit) {
+          return obstacle;
+        }
+
+        const obstaclePoint = obstaclePosition(obstacle, now);
+        const collisionRadius =
+          obstacle.kind === "rolling-luggage"
+            ? MOBILE_ROLLING_COLLISION_RADIUS
+            : MOBILE_OBSTACLE_COLLISION_RADIUS;
+
+        if (distanceBetween(riderPosition, obstaclePoint) >= collisionRadius) {
+          return obstacle;
+        }
+
+        didChange = true;
+        triggerPostboyStun(obstacle, obstaclePoint, now);
+
+        return {
+          ...obstacle,
+          hit: true,
+          removeAt:
+            obstacle.kind === "rolling-luggage"
+              ? obstacle.removeAt
+              : now + OBSTACLE_EXIT_MS,
+          status:
+            obstacle.kind === "rolling-luggage"
+              ? obstacle.status
+              : ("exiting" as const),
+        };
+      });
+
+      if (didChange) {
+        publishObstacles(nextObstacles);
+      }
+    }
+
+    function spawnPostcard(now: number) {
+      const nextPostcard = createMobileGamePostcard(
+        nextPostcardIndexRef.current,
+        postcardDeckRef.current,
+        postcardSpawnZonesRef.current,
+        obstacleAvoidPoints(now),
+      );
+
+      if (!nextPostcard) {
+        lastSpawnAtRef.current = now + 220;
+        return;
+      }
+
+      nextPostcardIndexRef.current += 1;
+      postcardRef.current = nextPostcard;
+      lastSpawnAtRef.current = now;
+      setPostcard(nextPostcard);
+    }
+
+    function catchPostcard(now: number, activePostcard: GamePostcard) {
+      const caughtPostcard = {
+        ...activePostcard,
+        status: "caught" as const,
+      };
+      const nextScore = scoreRef.current + 1;
+
+      scoreRef.current = nextScore;
+      postcardRef.current = caughtPostcard;
+      setScore(nextScore);
+      setPostcard(caughtPostcard);
+
+      caughtTimeoutRef.current = window.setTimeout(() => {
+        if (postcardRef.current?.id !== caughtPostcard.id) {
+          return;
+        }
+
+        if (nextScore >= POSTCARD_TOTAL) {
+          finishGame("won");
+          return;
+        }
+
+        postcardRef.current = null;
+        setPostcard(null);
+        lastSpawnAtRef.current = performance.now() + POSTCARD_RESPAWN_DELAY;
+      }, 430);
+
+      lastSpawnAtRef.current = now + POSTCARD_RESPAWN_DELAY;
+    }
+
+    function handleResize() {
+      const current = motionRef.current;
+      const route = routeRef.current;
+
+      current.x = clamp(current.x, 38, window.innerWidth - 38);
+      current.y = clamp(current.y, 104, window.innerHeight - 56);
+      current.targetX = clamp(current.targetX, 38, window.innerWidth - 38);
+      current.targetY = clamp(current.targetY, 104, window.innerHeight - 56);
+
+      if (route.origin) {
+        route.origin.x = clamp(route.origin.x, 38, window.innerWidth - 38);
+        route.origin.y = clamp(route.origin.y, 104, window.innerHeight - 56);
+      }
+
+      for (const point of route.points) {
+        point.x = clamp(point.x, 38, window.innerWidth - 38);
+        point.y = clamp(point.y, 104, window.innerHeight - 56);
+      }
+
+      if (postcardRef.current) {
+        const nextPostcard = {
+          ...postcardRef.current,
+          ...clampMobilePostcardPoint(postcardRef.current),
+        };
+
+        postcardRef.current = nextPostcard;
+        setPostcard(nextPostcard);
+      }
+    }
+
+    function tick(now: number) {
+      const current = motionRef.current;
+      const route = routeRef.current;
+      const activePostcard = postcardRef.current;
+      const activeStun =
+        postboyStunRef.current && now < postboyStunRef.current.until
+          ? postboyStunRef.current
+          : null;
+
+      if (postboyStunRef.current && !activeStun) {
+        postboyStunRef.current = null;
+        setPostboyStun(null);
+      }
+
+      if (gameStartedAtRef.current !== null) {
+        const remainingMs = Math.max(
+          0,
+          GAME_DURATION_MS - (now - gameStartedAtRef.current),
         );
-      })}
-      <svg
-        aria-hidden="true"
-        data-testid="postboy-route-layer"
-        className="postboy-route-layer"
-      >
-        <path ref={routeShadowPathRef} className="postboy-route-shadow" />
-        <path
-          ref={routePathRef}
-          data-testid="postboy-route-path"
-          className="postboy-route-path"
-        />
-      </svg>
-      <div
-        ref={riderRef}
-        aria-hidden="true"
-        data-stun-kind={postboyStun?.kind ?? "none"}
-        data-testid="postboy-vespa-chaser"
-        className="pointer-events-none fixed right-[7vw] top-28 z-40 hidden w-[clamp(86px,7vw,139px)] select-none opacity-0 transition-opacity duration-300 md:block"
-      >
-        <div
-          ref={spriteRef}
-          data-testid="postboy-vespa-sprite"
-          className="relative drop-shadow-[0_18px_24px_rgba(17,24,39,0.18)] will-change-transform"
-        >
-          <div
-            ref={trailsRef}
-            data-testid="postboy-motion-trails"
-            className="postboy-motion-trails"
-          >
-            <span className="postboy-speed-haze" />
-            <span className="postboy-wind-trail postboy-wind-trail-long" />
-            <span className="postboy-wind-trail postboy-wind-trail-mid" />
-            <span className="postboy-wind-trail postboy-wind-trail-short" />
-            <span className="postboy-cloud-puff postboy-cloud-puff-one" />
-            <span className="postboy-cloud-puff postboy-cloud-puff-two" />
-          </div>
-          <Image
-            src="/marketing/postboy-loading-vespa.png"
-            alt=""
-            width={POSTBOY_SIZE.width}
-            height={POSTBOY_SIZE.height}
-            sizes="139px"
-            className="relative z-10 h-auto w-full"
-            priority
-          />
-        </div>
-      </div>
-      {gameComplete ? (
+        const nextTimeLeft = Math.min(
+          GAME_DURATION_SECONDS,
+          Math.ceil(remainingMs / 1000),
+        );
+
+        if (nextTimeLeft !== timeLeftRef.current) {
+          timeLeftRef.current = nextTimeLeft;
+          setTimeLeft(nextTimeLeft);
+        }
+
+        if (remainingMs <= 0 && scoreRef.current < POSTCARD_TOTAL) {
+          finishGame("lost");
+          return;
+        }
+      }
+
+      syncObstacles(now);
+
+      if (
+        !activePostcard &&
+        nextPostcardIndexRef.current < POSTCARD_TOTAL &&
+        now >= lastSpawnAtRef.current
+      ) {
+        spawnPostcard(now);
+      }
+
+      if (now >= nextStaticObstacleAtRef.current) {
+        spawnStaticObstacles(now);
+      }
+
+      if (now >= nextRollingObstacleAtRef.current) {
+        spawnRollingObstacle(now);
+      }
+
+      if (!activeStun) {
+        while (
+          route.points.length > 0 &&
+          distanceBetween(current, route.points[0]) < MOBILE_ROUTE_CONSUME_RADIUS
+        ) {
+          const consumedPoint = route.points.shift();
+          route.origin = route.points.length > 0 && consumedPoint ? consumedPoint : null;
+        }
+      }
+
+      if (!activeStun && route.points.length > 0) {
+        current.targetX = route.points[0].x;
+        current.targetY = route.points[0].y;
+      } else {
+        current.targetX = current.x;
+        current.targetY = current.y;
+      }
+
+      const dx = current.targetX - current.x;
+      const dy = current.targetY - current.y;
+      const distance = Math.hypot(dx, dy);
+
+      if (!activeStun && distance > 28) {
+        current.velocityX += dx * 0.052;
+        current.velocityY += dy * 0.052;
+      }
+
+      current.velocityX *= activeStun ? 0.9 : 0.82;
+      current.velocityY *= activeStun ? 0.9 : 0.82;
+
+      const speed = Math.hypot(current.velocityX, current.velocityY);
+      const maxSpeed = activeStun ? 7.5 : 12.5;
+
+      if (speed > maxSpeed) {
+        const scale = maxSpeed / speed;
+        current.velocityX *= scale;
+        current.velocityY *= scale;
+      }
+
+      current.x = clamp(current.x + current.velocityX, 34, window.innerWidth - 34);
+      current.y = clamp(current.y + current.velocityY, 104, window.innerHeight - 52);
+
+      if (Math.abs(current.velocityX) > 0.15) {
+        current.facing = current.velocityX < 0 ? 1 : -1;
+      }
+
+      const bob = Math.sin(now / 108) * Math.min(2.8, speed * 0.45);
+      const lean = clamp(current.velocityY * 0.7, -6, 6);
+      const trailOpacity = clamp((speed - 0.2) / 2.1, 0, 1);
+      const stunProgress = activeStun
+        ? clamp(
+            (now - activeStun.startedAt) /
+              (activeStun.until - activeStun.startedAt),
+            0,
+            1,
+          )
+        : 0;
+      const stunRotation = activeStun
+        ? activeStun.kind === "banana-peel"
+          ? 360 * activeStun.direction * stunProgress
+          : activeStun.kind === "open-suitcase"
+            ? -360 * activeStun.direction * stunProgress
+            : Math.sin(stunProgress * Math.PI * 6) * 18
+        : 0;
+      const stunLift = activeStun
+        ? activeStun.kind === "open-suitcase"
+          ? -Math.sin(stunProgress * Math.PI) * 18
+          : activeStun.kind === "banana-peel"
+            ? Math.sin(stunProgress * Math.PI * 2) * 7
+            : Math.sin(stunProgress * Math.PI) * 10
+        : 0;
+
+      riderElement.style.transform = `translate3d(${current.x}px, ${current.y}px, 0)`;
+      riderElement.setAttribute("data-stun-kind", activeStun?.kind ?? "none");
+      spriteElement.style.transform = `translate(-50%, -50%) scaleX(${current.facing}) translateY(${bob + stunLift}px) rotate(${lean + stunRotation}deg)`;
+      trailsElement.style.setProperty("--postboy-trail-opacity", trailOpacity.toFixed(3));
+      const routePathData = route.origin
+        ? buildCurvedRoutePath(
+            route.origin,
+            visibleRoutePoints(route.origin, route.points, now),
+          )
+        : "";
+      const routeOpacity =
+        route.points.length > 0 ? clamp(0.5 + route.points.length * 0.14, 0, 1) : 0;
+      routePathElement.setAttribute("d", routePathData);
+      routeShadowPathElement.setAttribute("d", routePathData);
+      routePathElement.style.opacity = routeOpacity.toFixed(3);
+      routeShadowPathElement.style.opacity = (routeOpacity * 0.72).toFixed(3);
+
+      if (
+        activePostcard?.status === "active" &&
+        distanceBetween(current, activePostcard) < MOBILE_POSTCARD_CATCH_RADIUS
+      ) {
+        catchPostcard(now, activePostcard);
+      }
+
+      handleObstacleCollisions(now);
+
+      frameRef.current = window.requestAnimationFrame(tick);
+    }
+
+    window.addEventListener("resize", handleResize);
+    frameRef.current = window.requestAnimationFrame(tick);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      }
+
+      if (caughtTimeoutRef.current !== null) {
+        window.clearTimeout(caughtTimeoutRef.current);
+        caughtTimeoutRef.current = null;
+      }
+    };
+  }, [isAvailable, phase]);
+
+  if (!isAvailable) {
+    return null;
+  }
+
+  const gameComplete = phase === "won" || phase === "lost";
+  const isPlaying = phase === "playing";
+
+  return (
+    <>
+      {phase !== "closed" ? (
         <div
           aria-modal="true"
-          aria-label={hasWon ? "Free book unlocked" : "Try again to win a free book"}
-          data-testid="postboy-reward-modal"
+          aria-label="Postboy postcard game"
+          data-testid="postboy-mobile-game-overlay"
           role="dialog"
-          className="postboy-reward-backdrop"
+          className="postboy-mobile-overlay"
         >
-          <div className="postboy-reward-modal">
-            {hasWon ? (
-              <div className="postboy-reward-confetti" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
-            ) : null}
+          {phase === "tutorial" ? (
             <button
               type="button"
-              aria-label="Close postcard game result"
-              className="postboy-reward-close"
-              onClick={closeGameResult}
+              aria-label="Close postcard game"
+              className="postboy-mobile-close"
+              onClick={closeMobileGame}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6.7 5.3 12 10.6l5.3-5.3 1.4 1.4-5.3 5.3 5.3 5.3-1.4 1.4-5.3-5.3-5.3 5.3-1.4-1.4 5.3-5.3-5.3-5.3z" />
               </svg>
             </button>
-            {!hasWon ? (
-              <p className="postboy-reward-kicker">Time&apos;s up</p>
-            ) : null}
-            <h2>
-              {hasWon
-                ? "Free book unlocked."
-                : "Try again to win a free book."}
-            </h2>
-            {hasWon ? (
-              <>
-                <div className="postboy-reward-postboy" aria-hidden="true">
+          ) : null}
+          {phase === "tutorial" ? (
+            <div className="postboy-mobile-tutorial" data-testid="postboy-mobile-tutorial">
+              <div className="postboy-mobile-tutorial-art" aria-hidden="true">
+                <Image
+                  src="/marketing/postboy-loading-vespa.png"
+                  alt=""
+                  width={POSTBOY_SIZE.width}
+                  height={POSTBOY_SIZE.height}
+                  sizes="104px"
+                  className="postboy-mobile-tutorial-postboy"
+                  priority
+                />
+                <span className="postboy-mobile-tutorial-route" />
+                <span className="postboy-mobile-tutorial-postcard">
                   <Image
-                    src="/marketing/postboy-onboarding-coffee-table-glory.png"
+                    src="/marketing/postcards/rome-colosseum.png"
                     alt=""
-                    width={900}
-                    height={725}
-                    sizes="190px"
-                    className="postboy-reward-postboy-image"
+                    fill
+                    sizes="76px"
                   />
-                </div>
-                <div className="postboy-reward-code">{REWARD_CODE}</div>
-              </>
-            ) : (
-              <p>Postboy needs all 10 postcards before the clock runs out.</p>
-            )}
-            <p className="postboy-reward-fineprint">First order only.</p>
-            <div className="postboy-reward-actions">
-              {hasWon ? (
-                <button type="button" onClick={handleCopyCode}>
-                  {hasCopiedCode ? "Copied" : "Copy code"}
-                </button>
-              ) : null}
-              <button type="button" onClick={handlePlayAgain}>
-                {hasWon ? "Play again" : "Try again"}
+                </span>
+              </div>
+              <p className="postboy-reward-kicker">Postboy Delivery</p>
+              <h2>Draw the route.</h2>
+              <p>
+                Drag anywhere to lead Postboy. Collect all 10 postcards in 30
+                seconds and dodge surprise luggage.
+              </p>
+              <button type="button" onClick={startMobileGame}>
+                Start delivery
               </button>
             </div>
-          </div>
+          ) : null}
+          {phase !== "tutorial" ? (
+            <>
+              <div
+                aria-label={`${score} of ${POSTCARD_TOTAL} postcards collected, ${timeLeft} seconds remaining`}
+                data-testid="postboy-mobile-hud"
+                className="postboy-mobile-hud"
+              >
+                <div className="postboy-game-title">Play to Win a Free Book</div>
+                <div className="postboy-game-score-row">
+                  <span className="postboy-game-score-group">
+                    <span className="postboy-game-score-label">Postcards</span>
+                    <strong data-testid="postboy-mobile-game-count">
+                      {score}/{POSTCARD_TOTAL}
+                    </strong>
+                  </span>
+                  <span className="postboy-game-score-divider" aria-hidden="true" />
+                  <span className="postboy-game-score-group">
+                    <span className="postboy-game-score-label">Time</span>
+                    <strong data-testid="postboy-mobile-game-timer">{timeLeft}s</strong>
+                  </span>
+                  <span className="postboy-game-score-divider" aria-hidden="true" />
+                  <button
+                    type="button"
+                    data-testid="postboy-mobile-game-control"
+                    className="postboy-game-control"
+                    aria-label={isPlaying ? "Stop postcard game" : "Play postcard game"}
+                    onClick={isPlaying ? closeMobileGame : startMobileGame}
+                  >
+                    {isPlaying ? (
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="7" y="7" width="10" height="10" rx="2" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M9 6.6v10.8L17.4 12 9 6.6z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div
+                data-testid="postboy-mobile-stage"
+                className="postboy-mobile-stage"
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+              >
+                {postcard ? (
+                  <PostcardView
+                    postcard={postcard}
+                    testId="postboy-mobile-postcard"
+                  />
+                ) : null}
+                {obstacles.map((obstacle) => (
+                  <ObstacleView key={obstacle.id} obstacle={obstacle} />
+                ))}
+                <svg
+                  aria-hidden="true"
+                  data-testid="postboy-mobile-route-layer"
+                  className="postboy-route-layer postboy-mobile-route-layer"
+                >
+                  <path ref={routeShadowPathRef} className="postboy-route-shadow" />
+                  <path
+                    ref={routePathRef}
+                    data-testid="postboy-mobile-route-path"
+                    className="postboy-route-path"
+                  />
+                </svg>
+                <div
+                  ref={riderRef}
+                  aria-hidden="true"
+                  data-stun-kind={postboyStun?.kind ?? "none"}
+                  data-testid="postboy-mobile-vespa"
+                  className="postboy-mobile-rider"
+                >
+                  <div
+                    ref={spriteRef}
+                    data-testid="postboy-mobile-vespa-sprite"
+                    className="relative drop-shadow-[0_18px_24px_rgba(17,24,39,0.18)] will-change-transform"
+                  >
+                    <div
+                      ref={trailsRef}
+                      data-testid="postboy-mobile-motion-trails"
+                      className="postboy-motion-trails"
+                    >
+                      <span className="postboy-speed-haze" />
+                      <span className="postboy-wind-trail postboy-wind-trail-long" />
+                      <span className="postboy-wind-trail postboy-wind-trail-mid" />
+                      <span className="postboy-wind-trail postboy-wind-trail-short" />
+                      <span className="postboy-cloud-puff postboy-cloud-puff-one" />
+                      <span className="postboy-cloud-puff postboy-cloud-puff-two" />
+                    </div>
+                    <Image
+                      src="/marketing/postboy-loading-vespa.png"
+                      alt=""
+                      width={POSTBOY_SIZE.width}
+                      height={POSTBOY_SIZE.height}
+                      sizes="118px"
+                      className="relative z-10 h-auto w-full"
+                      priority
+                    />
+                  </div>
+                </div>
+              </div>
+              {gameComplete ? (
+                <RewardModal
+                  gameStatus={phase === "won" ? "won" : "lost"}
+                  hasCopiedCode={hasCopiedCode}
+                  onClose={closeMobileGame}
+                  onCopyCode={handleCopyCode}
+                  onPlayAgain={startMobileGame}
+                />
+              ) : null}
+            </>
+          ) : null}
         </div>
       ) : null}
     </>
