@@ -116,6 +116,9 @@ const OBSTACLE_ROLLING_STUN_MS = 1500;
 const POSTBOY_HOME_ANCHOR_SELECTOR = "[data-postboy-home-anchor]";
 const POSTBOY_MOBILE_OPEN_EVENT = "postboy:mobile-game-open";
 const MOBILE_POSTCARD_CATCH_RADIUS = 132;
+const MOBILE_POSTCARD_X_MARGIN = 68;
+const MOBILE_POSTCARD_TOP_MARGIN = 142;
+const MOBILE_POSTCARD_BOTTOM_MARGIN = 112;
 const MOBILE_ROUTE_CONSUME_RADIUS = 38;
 const MOBILE_OBSTACLE_COLLISION_RADIUS = 70;
 const MOBILE_ROLLING_COLLISION_RADIUS = 82;
@@ -549,22 +552,28 @@ function createMobileGamePostcard(
       continue;
     }
 
-    const minX = Math.max(68, window.innerWidth * spawnZone.minX);
-    const maxX = Math.min(window.innerWidth - 68, window.innerWidth * spawnZone.maxX);
-    const minY = Math.max(142, window.innerHeight * spawnZone.minY);
+    const minX = Math.max(MOBILE_POSTCARD_X_MARGIN, window.innerWidth * spawnZone.minX);
+    const maxX = Math.min(
+      window.innerWidth - MOBILE_POSTCARD_X_MARGIN,
+      window.innerWidth * spawnZone.maxX,
+    );
+    const minY = Math.max(
+      MOBILE_POSTCARD_TOP_MARGIN,
+      window.innerHeight * spawnZone.minY,
+    );
     const maxY = Math.min(
-      window.innerHeight - 112,
+      window.innerHeight - MOBILE_POSTCARD_BOTTOM_MARGIN,
       window.innerHeight * spawnZone.maxY,
     );
     const x = clamp(
       minX + Math.random() * Math.max(1, maxX - minX),
-      68,
-      window.innerWidth - 68,
+      MOBILE_POSTCARD_X_MARGIN,
+      window.innerWidth - MOBILE_POSTCARD_X_MARGIN,
     );
     const y = clamp(
       minY + Math.random() * Math.max(1, maxY - minY),
-      142,
-      window.innerHeight - 112,
+      MOBILE_POSTCARD_TOP_MARGIN,
+      window.innerHeight - MOBILE_POSTCARD_BOTTOM_MARGIN,
     );
 
     if (avoidPoints.some((point) => distanceBetween(point, { x, y }) < 156)) {
@@ -692,6 +701,24 @@ function mobilePostboyStartPosition(): Point {
   return {
     x: clamp(66, 48, window.innerWidth - 48),
     y: clamp(window.innerHeight - 152, 166, window.innerHeight - 102),
+  };
+}
+
+function clampMobilePostcardPoint(point: Point): Point {
+  return {
+    x: clamp(
+      point.x,
+      MOBILE_POSTCARD_X_MARGIN,
+      Math.max(MOBILE_POSTCARD_X_MARGIN, window.innerWidth - MOBILE_POSTCARD_X_MARGIN),
+    ),
+    y: clamp(
+      point.y,
+      MOBILE_POSTCARD_TOP_MARGIN,
+      Math.max(
+        MOBILE_POSTCARD_TOP_MARGIN,
+        window.innerHeight - MOBILE_POSTCARD_BOTTOM_MARGIN,
+      ),
+    ),
   };
 }
 
@@ -2368,6 +2395,16 @@ function MobilePostboyGame() {
       for (const point of route.points) {
         point.x = clamp(point.x, 38, window.innerWidth - 38);
         point.y = clamp(point.y, 104, window.innerHeight - 56);
+      }
+
+      if (postcardRef.current) {
+        const nextPostcard = {
+          ...postcardRef.current,
+          ...clampMobilePostcardPoint(postcardRef.current),
+        };
+
+        postcardRef.current = nextPostcard;
+        setPostcard(nextPostcard);
       }
     }
 

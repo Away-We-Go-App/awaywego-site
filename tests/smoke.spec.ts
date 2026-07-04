@@ -456,6 +456,36 @@ test("mobile postboy game opens a touch overlay and collects a postcard", async 
   await expect(page.getByTestId("postboy-mobile-entry")).toBeVisible();
 });
 
+test("mobile postboy game clamps active postcards after viewport resize", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  await page.getByTestId("postboy-mobile-entry").click();
+  await page.getByRole("button", { name: "Start delivery" }).click();
+
+  const postcard = page.getByTestId("postboy-mobile-postcard");
+  await expect(postcard).toBeVisible({ timeout: 2500 });
+
+  const oldTop = await postcard.evaluate((element) =>
+    Number.parseFloat((element as HTMLElement).style.top),
+  );
+
+  await page.setViewportSize({ width: 390, height: 260 });
+
+  const maxVisibleTop = await page.evaluate(() => Math.max(142, window.innerHeight - 112));
+
+  expect(oldTop).toBeGreaterThan(maxVisibleTop);
+  await expect
+    .poll(async () =>
+      postcard.evaluate((element) =>
+        Number.parseFloat((element as HTMLElement).style.top),
+      ),
+    )
+    .toBeLessThanOrEqual(maxVisibleTop);
+});
+
 test("postboy postcard game adds travel obstacles during active play", async ({
   page,
 }) => {
