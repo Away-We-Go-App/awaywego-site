@@ -214,6 +214,273 @@ a {
   fill: currentColor;
 }
 
+.postboy-mobile-entry {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  top: max(108px, calc(env(safe-area-inset-top) + 88px));
+  z-index: 58;
+  display: grid;
+  width: min(58vw, 232px);
+  border: 1px solid rgba(20, 29, 48, 0.13);
+  border-radius: 18px;
+  background: rgba(255, 252, 244, 0.94);
+  box-shadow: 0 16px 40px rgba(17, 24, 39, 0.14);
+  color: #17243a;
+  cursor: pointer;
+  font-family: var(--font-body), Arial, Helvetica, sans-serif;
+  padding: 10px 14px 11px;
+  text-align: center;
+}
+
+.postboy-mobile-entry-title {
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.postboy-mobile-entry-meta {
+  margin-top: 3px;
+  color: rgba(20, 29, 48, 0.58);
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.1;
+}
+
+.postboy-mobile-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.92), transparent 30%),
+    radial-gradient(circle at 82% 72%, rgba(216, 232, 222, 0.72), transparent 36%),
+    linear-gradient(145deg, #fffdf6 0%, #f8f3e9 54%, #edf4f2 100%);
+  color: #17243a;
+  font-family: var(--font-body), Arial, Helvetica, sans-serif;
+  touch-action: none;
+}
+
+.postboy-mobile-overlay::before {
+  position: absolute;
+  inset: -20%;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(23, 36, 58, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23, 36, 58, 0.04) 1px, transparent 1px);
+  background-size: 38px 38px;
+  content: "";
+  mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.62), transparent 72%);
+  pointer-events: none;
+}
+
+.postboy-mobile-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.postboy-mobile-close {
+  position: fixed;
+  right: max(15px, env(safe-area-inset-right));
+  top: max(14px, env(safe-area-inset-top));
+  z-index: 94;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgba(20, 29, 48, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 252, 244, 0.86);
+  color: rgba(20, 29, 48, 0.72);
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.12);
+}
+
+.postboy-mobile-close svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.postboy-mobile-hud {
+  position: fixed;
+  left: 50%;
+  top: max(12px, env(safe-area-inset-top));
+  z-index: 90;
+  display: grid;
+  width: min(90vw, 336px);
+  transform: translateX(-50%);
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(20, 29, 48, 0.12);
+  border-radius: 20px;
+  background: rgba(255, 252, 244, 0.91);
+  box-shadow: 0 16px 34px rgba(17, 24, 39, 0.13);
+  padding: 11px 14px 12px;
+  pointer-events: auto;
+}
+
+.postboy-mobile-hud .postboy-game-score-row {
+  width: min(100%, 300px);
+  gap: 7px;
+}
+
+.postboy-mobile-hud .postboy-game-control {
+  width: 44px;
+  height: 44px;
+}
+
+.postboy-mobile-tutorial {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: min(88vw, 370px);
+  min-height: 0;
+  margin: max(74px, calc(env(safe-area-inset-top) + 54px)) auto 0;
+  border: 1px solid rgba(20, 29, 48, 0.13);
+  border-radius: 24px;
+  background: rgba(255, 252, 244, 0.94);
+  box-shadow: 0 24px 70px rgba(17, 24, 39, 0.18);
+  padding: 22px;
+  text-align: center;
+}
+
+.postboy-mobile-tutorial-art {
+  position: relative;
+  width: min(74vw, 286px);
+  height: 150px;
+  margin: 0 auto 10px;
+}
+
+.postboy-mobile-tutorial-postboy {
+  position: absolute;
+  left: 0;
+  bottom: 4px;
+  width: 100px;
+  height: auto;
+  filter: drop-shadow(0 15px 18px rgba(17, 24, 39, 0.14));
+  transform: scaleX(-1) rotate(-2deg);
+}
+
+.postboy-mobile-tutorial-route {
+  position: absolute;
+  left: 86px;
+  top: 68px;
+  width: 122px;
+  height: 54px;
+  border-top: 3px dashed rgba(176, 74, 58, 0.72);
+  border-radius: 50%;
+  transform: rotate(-13deg);
+}
+
+.postboy-mobile-tutorial-postcard {
+  position: absolute;
+  right: 2px;
+  top: 10px;
+  display: block;
+  width: 78px;
+  aspect-ratio: 1;
+  border: 7px solid #fffdf6;
+  border-bottom-width: 20px;
+  border-radius: 5px;
+  background: #f8ded6;
+  box-shadow: 0 13px 26px rgba(17, 24, 39, 0.14);
+  overflow: hidden;
+  transform: rotate(5deg);
+}
+
+.postboy-mobile-tutorial h2 {
+  margin: 0;
+  font-family: var(--font-serif-display), Georgia, "Times New Roman", serif;
+  font-size: 2.4rem;
+  line-height: 0.98;
+}
+
+.postboy-mobile-tutorial p:not(.postboy-reward-kicker) {
+  margin: 13px auto 0;
+  max-width: 288px;
+  color: rgba(20, 29, 48, 0.68);
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.42;
+}
+
+.postboy-mobile-tutorial button {
+  justify-self: center;
+  margin-top: 20px;
+  min-width: 168px;
+  border: 0;
+  border-radius: 999px;
+  background: #17243a;
+  color: #fffdf6;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 850;
+  padding: 13px 18px;
+}
+
+.postboy-mobile-route-layer {
+  z-index: 82;
+}
+
+.postboy-mobile-rider {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 88;
+  width: clamp(92px, 26vw, 118px);
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.postboy-mobile-overlay .postboy-game-postcard {
+  z-index: 84;
+  width: 126px;
+}
+
+.postboy-mobile-overlay .postboy-game-postcard-paper {
+  padding: 7px 7px 30px;
+}
+
+.postboy-mobile-overlay .postboy-game-postcard-caption {
+  bottom: 7px;
+  font-size: 0.88rem;
+}
+
+.postboy-mobile-overlay .postboy-obstacle {
+  z-index: 83;
+}
+
+.postboy-mobile-overlay .postboy-obstacle-open-suitcase {
+  width: 112px;
+  height: 86px;
+}
+
+.postboy-mobile-overlay .postboy-obstacle-banana-peel {
+  width: 96px;
+  height: 104px;
+}
+
+.postboy-mobile-overlay .postboy-obstacle-rolling-luggage {
+  z-index: 85;
+  width: 74px;
+  height: 118px;
+}
+
+.postboy-mobile-overlay .postboy-reward-backdrop {
+  z-index: 96;
+}
+
+.postboy-mobile-overlay .postboy-reward-modal {
+  width: min(90vw, 382px);
+  padding: 26px 22px;
+}
+
 .postboy-game-postcard {
   position: fixed;
   z-index: 34;
