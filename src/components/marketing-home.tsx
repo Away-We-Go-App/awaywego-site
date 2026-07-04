@@ -31,7 +31,10 @@ export function MarketingHome() {
         <section className="relative z-10 grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-10 pt-10 sm:pt-12 lg:grid-cols-[minmax(330px,0.44fr)_minmax(560px,0.56fr)] lg:items-end lg:gap-12 lg:pt-0">
           <div className="order-2 flex min-w-0 flex-col justify-end pb-0 lg:order-1 lg:min-h-[calc(100vh-10rem)] lg:pb-10">
             <div className="max-w-[580px]">
-              <h1 className="serif-display-heading max-w-full text-[clamp(3.05rem,11vw,4.15rem)] font-semibold leading-[1.08] tracking-[0.012em] text-[#05070c] sm:max-w-[430px] sm:text-[clamp(3.5rem,8vw,4.85rem)] lg:max-w-[620px] lg:text-[clamp(3.5rem,4.45vw,4.45rem)]">
+              <h1
+                data-postboy-home-anchor
+                className="serif-display-heading max-w-full text-[clamp(3.05rem,11vw,4.15rem)] font-semibold leading-[1.08] tracking-[0.012em] text-[#05070c] sm:max-w-[430px] sm:text-[clamp(3.5rem,8vw,4.85rem)] lg:max-w-[620px] lg:text-[clamp(3.5rem,4.45vw,4.45rem)]"
+              >
                 Your trip should be a coffee table book.
               </h1>
               <p className="mt-6 max-w-[500px] text-xl font-medium leading-7 text-[#8a8a8a] sm:text-2xl sm:leading-8">
