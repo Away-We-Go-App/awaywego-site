@@ -216,7 +216,69 @@ test("postboy vespa starts above the headline, follows the mouse, and returns ho
     )
     .toBeGreaterThan(0.1);
 
+  await page.mouse.move(1100, 620, { steps: 24 });
+
+  await expect
+    .poll(async () => {
+      const box = await postboy.boundingBox();
+
+      if (!box) {
+        return 0;
+      }
+
+      return box.x - startBox.x;
+    })
+    .toBeGreaterThan(140);
+
+  const routeStartAndPostboy = async () => {
+    const routeData = await routePath.getAttribute("d");
+    const box = await postboy.boundingBox();
+    const match = routeData?.match(/^M\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/);
+
+    if (!box || !match) {
+      return null;
+    }
+
+    return {
+      postboy: { x: box.x, y: box.y },
+      routeStart: { x: Number(match[1]), y: Number(match[2]) },
+    };
+  };
+
   await page.waitForTimeout(5200);
+  await expect
+    .poll(async () => routePath.getAttribute("d"), { timeout: 1500 })
+    .toMatch(/[LQ]/);
+
+  const returnStart = await routeStartAndPostboy();
+
+  expect(returnStart).not.toBeNull();
+
+  if (!returnStart) {
+    throw new Error("Postboy return route did not render.");
+  }
+
+  await page.waitForTimeout(260);
+
+  const returnProgress = await routeStartAndPostboy();
+
+  expect(returnProgress).not.toBeNull();
+
+  if (!returnProgress) {
+    throw new Error("Postboy return route disappeared too early.");
+  }
+
+  const postboyReturnDelta = Math.hypot(
+    returnProgress.postboy.x - returnStart.postboy.x,
+    returnProgress.postboy.y - returnStart.postboy.y,
+  );
+  const routeStartDelta = Math.hypot(
+    returnProgress.routeStart.x - returnStart.routeStart.x,
+    returnProgress.routeStart.y - returnStart.routeStart.y,
+  );
+
+  expect(postboyReturnDelta).toBeGreaterThan(8);
+  expect(routeStartDelta).toBeGreaterThan(postboyReturnDelta * 0.55);
 
   await expect
     .poll(

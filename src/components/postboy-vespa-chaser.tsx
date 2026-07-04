@@ -1603,6 +1603,13 @@ export function PostboyVespaChaser() {
       current.x = clamp(current.x + current.velocityX, 48, window.innerWidth - 48);
       current.y = clamp(current.y + current.velocityY, 62, window.innerHeight - 48);
 
+      if (isReturningHomeRef.current && route.origin && route.points.length > 0) {
+        route.origin = {
+          x: current.x,
+          y: current.y,
+        };
+      }
+
       if (Math.abs(current.velocityX) > 0.15) {
         current.facing = current.velocityX < 0 ? 1 : -1;
       }
