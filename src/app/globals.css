@@ -75,3 +75,945 @@ a {
   background-repeat: no-repeat;
   background-size: 100% 8px;
 }
+
+.serif-display-heading {
+  font-family: var(--font-serif-display), Georgia, "Times New Roman", serif;
+  font-kerning: normal;
+  font-variant-ligatures: no-common-ligatures;
+  font-feature-settings: "kern" 1, "liga" 0, "clig" 0;
+  text-rendering: optimizeLegibility;
+}
+
+.postboy-route-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+.postboy-route-shadow,
+.postboy-route-path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 10 13;
+  vector-effect: non-scaling-stroke;
+  opacity: 0;
+  transition: opacity 240ms ease-out;
+}
+
+.postboy-route-shadow {
+  stroke: rgba(255, 252, 244, 0.82);
+  stroke-width: 8px;
+}
+
+.postboy-route-path {
+  stroke: rgba(176, 74, 58, 0.76);
+  stroke-width: 3.2px;
+  filter: drop-shadow(0 1px 2px rgba(90, 74, 50, 0.16));
+}
+
+.postboy-game-score {
+  position: fixed;
+  right: 32px;
+  top: 28px;
+  z-index: 55;
+  display: grid;
+  gap: 9px;
+  width: 296px;
+  justify-content: center;
+  border: 1px solid rgba(20, 29, 48, 0.12);
+  border-radius: 20px;
+  background: rgba(255, 252, 244, 0.9);
+  box-shadow: 0 14px 36px rgba(17, 24, 39, 0.1);
+  color: #17243a;
+  font-family: var(--font-body), Arial, Helvetica, sans-serif;
+  padding: 11px 14px 12px;
+  pointer-events: auto;
+}
+
+.postboy-game-title {
+  color: #17243a;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.postboy-game-score-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr) 1px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  justify-items: center;
+}
+
+.postboy-game-score-group {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  text-align: center;
+}
+
+.postboy-game-score-label {
+  color: rgba(20, 29, 48, 0.62);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.postboy-game-score strong {
+  font-size: 1.12rem;
+  line-height: 1;
+}
+
+.postboy-game-score-divider {
+  width: 1px;
+  height: 33px;
+  background: rgba(20, 29, 48, 0.12);
+}
+
+.postboy-game-control {
+  display: grid;
+  justify-self: center;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1.5px solid rgba(23, 36, 58, 0.78);
+  border-radius: 999px;
+  background: rgba(255, 252, 244, 0.92);
+  color: #17243a;
+  cursor: pointer;
+  box-shadow: 0 7px 18px rgba(17, 24, 39, 0.08);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.postboy-game-control:hover {
+  border-color: #17243a;
+  background: rgba(23, 36, 58, 0.06);
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.1);
+  transform: translateY(-1px);
+}
+
+.postboy-game-control:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.postboy-game-control svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.postboy-game-postcard {
+  position: fixed;
+  z-index: 34;
+  width: 150px;
+  pointer-events: none;
+  transform: translate(-50%, -50%) rotate(var(--postcard-rotation));
+  transform-origin: center;
+}
+
+.postboy-game-postcard-paper {
+  position: relative;
+  z-index: 2;
+  padding: 8px 8px 34px;
+  border-radius: 4px;
+  background: #fffdf6;
+  box-shadow:
+    0 18px 42px rgba(17, 24, 39, 0.18),
+    0 2px 4px rgba(17, 24, 39, 0.08);
+  transform-origin: center;
+  animation-name: postboy-postcard-paper-in, postboy-postcard-paper-float;
+  animation-duration: 520ms, 1900ms;
+  animation-delay: 0ms, 520ms;
+  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1), ease-in-out;
+  animation-iteration-count: 1, infinite;
+  animation-fill-mode: both, none;
+}
+
+.postboy-postcard-poof {
+  position: absolute;
+  inset: -40px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.postboy-postcard-poof::before {
+  position: absolute;
+  inset: 28px;
+  z-index: 1;
+  border-radius: 999px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 252, 244, 0.7),
+    rgba(213, 202, 186, 0.32) 42%,
+    transparent 72%
+  );
+  content: "";
+  filter: blur(8px);
+  opacity: 0;
+  transform: scale(0.5);
+  animation: postboy-postcard-poof-halo 700ms ease-out both;
+}
+
+.postboy-postcard-poof span {
+  --poof-x: 0px;
+  --poof-y: 0px;
+  --poof-scale: 1;
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 50%;
+  width: 58px;
+  height: 34px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 34% 34%, rgba(255, 255, 255, 0.92), transparent 33%),
+    radial-gradient(ellipse at center, rgba(223, 216, 203, 0.72), rgba(145, 133, 116, 0.24) 68%, transparent 74%);
+  box-shadow: 0 10px 22px rgba(90, 74, 50, 0.14);
+  filter: blur(1.2px);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.24);
+  animation: postboy-postcard-poof-puff 940ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.postboy-postcard-poof span:nth-child(1) {
+  --poof-x: -44px;
+  --poof-y: -30px;
+  --poof-scale: 1.12;
+  left: 20%;
+  top: 24%;
+  animation-delay: 18ms;
+}
+
+.postboy-postcard-poof span:nth-child(2) {
+  --poof-x: 40px;
+  --poof-y: -30px;
+  --poof-scale: 0.92;
+  left: 80%;
+  top: 26%;
+  width: 48px;
+  height: 30px;
+  animation-delay: 58ms;
+}
+
+.postboy-postcard-poof span:nth-child(3) {
+  --poof-x: -48px;
+  --poof-y: 22px;
+  --poof-scale: 0.98;
+  left: 18%;
+  top: 70%;
+  width: 52px;
+  height: 32px;
+  animation-delay: 82ms;
+}
+
+.postboy-postcard-poof span:nth-child(4) {
+  --poof-x: 48px;
+  --poof-y: 24px;
+  --poof-scale: 1.08;
+  left: 80%;
+  top: 68%;
+  width: 60px;
+  height: 34px;
+  animation-delay: 38ms;
+}
+
+.postboy-postcard-poof span:nth-child(5) {
+  --poof-x: -8px;
+  --poof-y: -42px;
+  --poof-scale: 0.78;
+  left: 50%;
+  top: 14%;
+  width: 42px;
+  height: 26px;
+  animation-delay: 106ms;
+}
+
+.postboy-postcard-poof span:nth-child(6) {
+  --poof-x: 6px;
+  --poof-y: 44px;
+  --poof-scale: 0.84;
+  left: 52%;
+  top: 86%;
+  width: 44px;
+  height: 26px;
+  animation-delay: 122ms;
+}
+
+.postboy-game-postcard-photo {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 3px;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.48), transparent 30%),
+    var(--postcard-photo-bg, #efe7dc);
+}
+
+.postboy-game-postcard-art {
+  object-fit: contain;
+  padding: 10px;
+}
+
+.postboy-game-postcard-caption {
+  position: absolute;
+  bottom: 8px;
+  left: 9px;
+  right: 9px;
+  overflow: hidden;
+  color: #1d2a44;
+  font-family: "Marker Felt", "Bradley Hand", "Comic Sans MS", cursive;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.postboy-game-postcard-caught .postboy-game-postcard-paper {
+  animation: postboy-postcard-caught 430ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.postboy-game-postcard-caught .postboy-postcard-poof {
+  display: none;
+}
+
+.postboy-obstacle {
+  position: fixed;
+  z-index: 33;
+  width: 128px;
+  height: 112px;
+  pointer-events: none;
+  transform: translate(-50%, -50%) rotate(var(--obstacle-rotation));
+  transform-origin: center;
+}
+
+.postboy-obstacle-open-suitcase {
+  width: 136px;
+  height: 104px;
+}
+
+.postboy-obstacle-banana-peel {
+  width: 118px;
+  height: 126px;
+}
+
+.postboy-obstacle-rolling-luggage {
+  z-index: 35;
+  width: 92px;
+  height: 148px;
+  animation: postboy-rolling-luggage-cross var(--rolling-duration) linear forwards;
+}
+
+.postboy-obstacle-visual {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 14px 18px rgba(17, 24, 39, 0.14));
+  transform-origin: center bottom;
+}
+
+.postboy-obstacle-active .postboy-obstacle-visual {
+  animation: postboy-obstacle-plop-in 460ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.postboy-obstacle-exiting .postboy-obstacle-visual {
+  animation: postboy-obstacle-poof-out 520ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.postboy-obstacle-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.postboy-obstacle-rolling-luggage .postboy-obstacle-visual {
+  animation:
+    postboy-obstacle-plop-in 460ms cubic-bezier(0.23, 1, 0.32, 1) both,
+    postboy-rolling-luggage-bob 430ms ease-in-out infinite;
+}
+
+.postboy-reward-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  background: rgba(20, 29, 48, 0.24);
+  padding: 24px;
+}
+
+.postboy-reward-modal {
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+  width: min(92vw, 420px);
+  border: 1px solid rgba(20, 29, 48, 0.14);
+  border-radius: 18px;
+  background: #fffdf6;
+  box-shadow: 0 28px 80px rgba(17, 24, 39, 0.24);
+  color: #17243a;
+  padding: 28px;
+  text-align: center;
+}
+
+.postboy-reward-modal > :not(.postboy-reward-confetti):not(.postboy-reward-close) {
+  position: relative;
+  z-index: 2;
+}
+
+.postboy-reward-confetti {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.postboy-reward-confetti span {
+  --confetti-color: #e56845;
+  --confetti-left: 50%;
+  --confetti-delay: 0ms;
+  --confetti-duration: 1500ms;
+  --confetti-rotate: 120deg;
+  position: absolute;
+  left: var(--confetti-left);
+  top: -20px;
+  width: 9px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--confetti-color);
+  box-shadow: 0 5px 12px rgba(17, 24, 39, 0.08);
+  opacity: 0;
+  transform: translate3d(0, -24px, 0) rotate(0deg);
+  animation: postboy-reward-confetti-fall var(--confetti-duration) ease-in var(--confetti-delay) infinite both;
+}
+
+.postboy-reward-confetti span:nth-child(1) {
+  --confetti-left: 10%;
+  --confetti-delay: 20ms;
+  --confetti-duration: 1360ms;
+  --confetti-rotate: 230deg;
+  --confetti-color: #e56845;
+}
+
+.postboy-reward-confetti span:nth-child(2) {
+  --confetti-left: 18%;
+  --confetti-delay: 180ms;
+  --confetti-duration: 1580ms;
+  --confetti-rotate: -180deg;
+  --confetti-color: #4f91ad;
+  width: 8px;
+  height: 13px;
+}
+
+.postboy-reward-confetti span:nth-child(3) {
+  --confetti-left: 28%;
+  --confetti-delay: 80ms;
+  --confetti-duration: 1480ms;
+  --confetti-rotate: 200deg;
+  --confetti-color: #f2c65c;
+  border-radius: 999px;
+}
+
+.postboy-reward-confetti span:nth-child(4) {
+  --confetti-left: 36%;
+  --confetti-delay: 260ms;
+  --confetti-duration: 1620ms;
+  --confetti-rotate: -250deg;
+  --confetti-color: #d95d42;
+}
+
+.postboy-reward-confetti span:nth-child(5) {
+  --confetti-left: 46%;
+  --confetti-delay: 110ms;
+  --confetti-duration: 1440ms;
+  --confetti-rotate: 170deg;
+  --confetti-color: #8fbf9f;
+  width: 7px;
+  height: 14px;
+}
+
+.postboy-reward-confetti span:nth-child(6) {
+  --confetti-left: 56%;
+  --confetti-delay: 210ms;
+  --confetti-duration: 1520ms;
+  --confetti-rotate: -210deg;
+  --confetti-color: #dfb551;
+  border-radius: 999px;
+}
+
+.postboy-reward-confetti span:nth-child(7) {
+  --confetti-left: 64%;
+  --confetti-delay: 30ms;
+  --confetti-duration: 1390ms;
+  --confetti-rotate: 260deg;
+  --confetti-color: #e56845;
+}
+
+.postboy-reward-confetti span:nth-child(8) {
+  --confetti-left: 72%;
+  --confetti-delay: 250ms;
+  --confetti-duration: 1660ms;
+  --confetti-rotate: -160deg;
+  --confetti-color: #4f91ad;
+  width: 8px;
+  height: 12px;
+}
+
+.postboy-reward-confetti span:nth-child(9) {
+  --confetti-left: 82%;
+  --confetti-delay: 140ms;
+  --confetti-duration: 1500ms;
+  --confetti-rotate: 210deg;
+  --confetti-color: #f2c65c;
+}
+
+.postboy-reward-confetti span:nth-child(10) {
+  --confetti-left: 90%;
+  --confetti-delay: 330ms;
+  --confetti-duration: 1700ms;
+  --confetti-rotate: -240deg;
+  --confetti-color: #8fbf9f;
+  border-radius: 999px;
+}
+
+.postboy-reward-confetti span:nth-child(11) {
+  --confetti-left: 6%;
+  --confetti-delay: 420ms;
+  --confetti-duration: 1640ms;
+  --confetti-rotate: -190deg;
+  --confetti-color: #4f91ad;
+  width: 7px;
+  height: 12px;
+}
+
+.postboy-reward-confetti span:nth-child(12) {
+  --confetti-left: 95%;
+  --confetti-delay: 460ms;
+  --confetti-duration: 1720ms;
+  --confetti-rotate: 220deg;
+  --confetti-color: #d95d42;
+  width: 7px;
+  height: 13px;
+}
+
+.postboy-reward-close {
+  position: absolute;
+  z-index: 3;
+  right: 14px;
+  top: 14px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(20, 29, 48, 0.08);
+  color: rgba(20, 29, 48, 0.72);
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.postboy-reward-close:hover {
+  background: rgba(20, 29, 48, 0.14);
+  color: #17243a;
+  transform: translateY(-1px);
+}
+
+.postboy-reward-close:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.postboy-reward-close svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.postboy-reward-kicker {
+  margin: 0 0 10px;
+  color: rgba(176, 74, 58, 0.92);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.postboy-reward-modal h2 {
+  margin: 0;
+  font-family: var(--font-serif-display), Georgia, "Times New Roman", serif;
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+.postboy-reward-postboy {
+  width: min(54vw, 208px);
+  margin: 10px auto 0;
+  transform: translateX(72px) rotate(4deg);
+  opacity: 0;
+  animation: postboy-reward-postboy-slide 1530ms cubic-bezier(0.16, 1, 0.3, 1) 90ms forwards;
+}
+
+.postboy-reward-postboy-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 15px 18px rgba(17, 24, 39, 0.13));
+}
+
+.postboy-reward-modal p:not(.postboy-reward-kicker) {
+  margin: 14px auto 0;
+  max-width: 320px;
+  color: rgba(20, 29, 48, 0.68);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.postboy-reward-code {
+  margin: 22px auto 0;
+  width: fit-content;
+  border: 1px dashed rgba(176, 74, 58, 0.66);
+  border-radius: 12px;
+  background: rgba(176, 74, 58, 0.08);
+  color: #8a3627;
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  padding: 11px 16px;
+}
+
+.postboy-reward-fineprint {
+  margin-top: 10px !important;
+  color: rgba(20, 29, 48, 0.48) !important;
+  font-size: 0.76rem !important;
+  line-height: 1.25 !important;
+}
+
+.postboy-reward-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.postboy-reward-actions button {
+  min-width: 122px;
+  border: 0;
+  border-radius: 999px;
+  background: #17243a;
+  color: #fffdf6;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 11px 16px;
+}
+
+.postboy-reward-actions button + button {
+  background: rgba(20, 29, 48, 0.1);
+  color: #17243a;
+}
+
+.postboy-motion-trails {
+  --postboy-trail-opacity: 0;
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  opacity: var(--postboy-trail-opacity);
+  transition: opacity 160ms ease-out;
+}
+
+.postboy-speed-haze,
+.postboy-wind-trail,
+.postboy-cloud-puff {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.postboy-speed-haze {
+  left: 82%;
+  top: 60%;
+  width: 76%;
+  height: 20%;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(255, 252, 244, 0.74), rgba(255, 252, 244, 0)),
+    radial-gradient(ellipse at 22% 50%, rgba(83, 123, 145, 0.4), rgba(83, 123, 145, 0) 72%);
+  filter: blur(0.3px);
+  opacity: 0.72;
+  transform: rotate(-3deg);
+}
+
+.postboy-wind-trail {
+  left: 84%;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(83, 123, 145, 0.82),
+    rgba(83, 123, 145, 0.74) 48%,
+    rgba(255, 252, 244, 0.8) 56%,
+    rgba(83, 123, 145, 0)
+  );
+  box-shadow: 0 0 0 1px rgba(255, 252, 244, 0.35);
+  filter: drop-shadow(0 1px 2px rgba(255, 252, 244, 0.9));
+  transform-origin: left center;
+  animation: postboy-wind-sweep 760ms linear infinite;
+}
+
+.postboy-wind-trail-long {
+  top: 64%;
+  width: 46%;
+}
+
+.postboy-wind-trail-mid {
+  top: 72%;
+  width: 34%;
+  animation-delay: -250ms;
+}
+
+.postboy-wind-trail-short {
+  top: 56%;
+  width: 26%;
+  animation-delay: -500ms;
+}
+
+.postboy-cloud-puff {
+  width: 14%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 38%, rgba(255, 252, 244, 0.9) 0 32%, transparent 34%),
+    radial-gradient(circle at 62% 46%, rgba(255, 252, 244, 0.8) 0 38%, transparent 40%),
+    radial-gradient(circle at 48% 66%, rgba(235, 224, 203, 0.62) 0 36%, transparent 38%);
+  filter: drop-shadow(0 3px 5px rgba(17, 24, 39, 0.08));
+  animation: postboy-cloud-drift 1180ms ease-out infinite;
+}
+
+.postboy-cloud-puff-one {
+  left: 92%;
+  top: 76%;
+}
+
+.postboy-cloud-puff-two {
+  left: 110%;
+  top: 68%;
+  width: 9%;
+  animation-delay: -520ms;
+}
+
+@keyframes postboy-wind-sweep {
+  0% {
+    opacity: 0.18;
+    transform: translate3d(0, 0, 0) scaleX(0.32);
+  }
+
+  34% {
+    opacity: 0.92;
+  }
+
+  100% {
+    opacity: 0.08;
+    transform: translate3d(54%, 0, 0) scaleX(1.08);
+  }
+}
+
+@keyframes postboy-cloud-drift {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.72);
+  }
+
+  32% {
+    opacity: 0.72;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(74%, -18%, 0) scale(1.16);
+  }
+}
+
+@keyframes postboy-postcard-paper-in {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.72) rotate(-2deg);
+  }
+
+  58% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.075) rotate(1.2deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes postboy-postcard-paper-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-2px) scale(1.045);
+  }
+}
+
+@keyframes postboy-postcard-poof-halo {
+  0% {
+    opacity: 0;
+    transform: scale(0.36);
+  }
+
+  18% {
+    opacity: 0.78;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.24);
+  }
+}
+
+@keyframes postboy-postcard-poof-puff {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.24);
+  }
+
+  14% {
+    opacity: 0.74;
+  }
+
+  52% {
+    opacity: 0.42;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(
+        calc(-50% + var(--poof-x)),
+        calc(-50% + var(--poof-y))
+      )
+      scale(var(--poof-scale));
+  }
+}
+
+@keyframes postboy-postcard-caught {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg) scale(1.04);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-28px) rotate(7deg) scale(0.28);
+  }
+}
+
+@keyframes postboy-obstacle-plop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.6);
+  }
+
+  62% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.08);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes postboy-obstacle-poof-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.72);
+    filter: blur(4px);
+  }
+}
+
+@keyframes postboy-rolling-luggage-cross {
+  0% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) rotate(var(--obstacle-rotation));
+  }
+
+  100% {
+    transform: translate(-50%, -50%) translate3d(var(--rolling-dx), var(--rolling-dy), 0) rotate(var(--obstacle-rotation));
+  }
+}
+
+@keyframes postboy-rolling-luggage-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+
+  50% {
+    transform: translateY(-3px) rotate(1.4deg);
+  }
+}
+
+@keyframes postboy-reward-confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(-10px, -24px, 0) rotate(0deg);
+  }
+
+  12% {
+    opacity: 0.94;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(14px, 310px, 0) rotate(var(--confetti-rotate));
+  }
+}
+
+@keyframes postboy-reward-postboy-slide {
+  0% {
+    opacity: 0;
+    transform: translateX(72px) rotate(4deg) scale(0.94);
+  }
+
+  68% {
+    opacity: 1;
+    transform: translateX(-7px) rotate(-2deg) scale(1.02);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0) rotate(0deg) scale(1);
+  }
+}

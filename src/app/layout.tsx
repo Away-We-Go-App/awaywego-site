@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { Abril_Fatface, Inter, Special_Elite } from "next/font/google";
+import {
+  Abril_Fatface,
+  EB_Garamond,
+  Inter,
+  Special_Elite,
+} from "next/font/google";
 
 import { siteCopy } from "@/content/site-copy";
 
@@ -20,6 +25,12 @@ const accentFont = Special_Elite({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-accent",
+});
+
+const serifDisplayFont = EB_Garamond({
+  weight: ["500", "600"],
+  subsets: ["latin"],
+  variable: "--font-serif-display",
 });
 
 export const metadata: Metadata = {
@@ -47,7 +58,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bodyFont.variable} ${displayFont.variable} ${accentFont.variable} h-full antialiased`}
+      className={`${bodyFont.variable} ${displayFont.variable} ${accentFont.variable} ${serifDisplayFont.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[var(--paper)]">
         {children}
