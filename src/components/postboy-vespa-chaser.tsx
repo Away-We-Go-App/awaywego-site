@@ -296,12 +296,12 @@ function homePosition() {
   if (anchor) {
     const rect = anchor.getBoundingClientRect();
     const x = clamp(
-      rect.left + 62,
+      rect.left + 44,
       38,
       window.innerWidth - postboySize.width - 38,
     );
     const y = clamp(
-      rect.top + rect.height * 0.44 - postboySize.height - 22,
+      rect.top + rect.height * 0.44 - postboySize.height - 8,
       116,
       window.innerHeight - postboySize.height - 36,
     );
