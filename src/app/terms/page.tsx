@@ -32,7 +32,7 @@ export default function TermsPage() {
       </p>
       <p>
         For questions about these terms, contact{" "}
-        <a className="underline decoration-[var(--brick)]" href={`mailto:${siteCopy.supportEmail}`}>
+        <a href={`mailto:${siteCopy.supportEmail}`}>
           {siteCopy.supportEmail}
         </a>
         .

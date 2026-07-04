@@ -32,7 +32,7 @@ export default function PrivacyPage() {
       </p>
       <p>
         If you have privacy questions, contact{" "}
-        <a className="underline decoration-[var(--brick)]" href={`mailto:${siteCopy.supportEmail}`}>
+        <a href={`mailto:${siteCopy.supportEmail}`}>
           {siteCopy.supportEmail}
         </a>
         .
