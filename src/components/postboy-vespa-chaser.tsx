@@ -91,6 +91,7 @@ const ROUTE_POINT_FAST_DISTANCE = 96;
 const ROUTE_POINT_INTERVAL = 72;
 const ROUTE_REVEAL_MS = 260;
 const ROUTE_CONSUME_RADIUS = 46;
+const POINTER_IDLE_RETURN_MS = 5000;
 const POSTCARD_CATCH_RADIUS = 172;
 const POSTCARD_RESPAWN_DELAY = 420;
 const POSTCARD_TOTAL = 10;
@@ -102,7 +103,7 @@ const POSTCARD_TOP_CLEARANCE = 214;
 const OBSTACLE_EDGE_MARGIN = 116;
 const OBSTACLE_TOP_CLEARANCE = 176;
 const OBSTACLE_STATIC_FIRST_DELAY = 3000;
-const OBSTACLE_STATIC_VISIBLE_MS = 4300;
+const OBSTACLE_STATIC_VISIBLE_MS = 6500;
 const OBSTACLE_STATIC_GAP_MS = 1300;
 const OBSTACLE_EXIT_MS = 520;
 const OBSTACLE_ROLLING_FIRST_DELAY = 8800;
@@ -112,6 +113,7 @@ const OBSTACLE_COLLISION_RADIUS = 80;
 const OBSTACLE_ROLLING_COLLISION_RADIUS = 96;
 const OBSTACLE_STUN_MS = 1250;
 const OBSTACLE_ROLLING_STUN_MS = 1500;
+const POSTBOY_HOME_ANCHOR_SELECTOR = "[data-postboy-home-anchor]";
 
 const POSTCARD_DESTINATIONS: DestinationAsset[] = [
   {
@@ -278,13 +280,41 @@ function visibleRoutePoints(origin: Point, routePoints: RoutePoint[], now: numbe
   return points;
 }
 
-function initialPosition() {
-  const x = clamp(
-    window.innerWidth - 150,
-    window.innerWidth * 0.78,
-    window.innerWidth - 86,
+function renderedPostboySize() {
+  const width = clamp(window.innerWidth * 0.07, 86, 139);
+
+  return {
+    width,
+    height: width * (POSTBOY_SIZE.height / POSTBOY_SIZE.width),
+  };
+}
+
+function homePosition() {
+  const anchor = document.querySelector<HTMLElement>(POSTBOY_HOME_ANCHOR_SELECTOR);
+  const postboySize = renderedPostboySize();
+
+  if (anchor) {
+    const rect = anchor.getBoundingClientRect();
+    const x = clamp(
+      rect.left + 4,
+      38,
+      window.innerWidth - postboySize.width - 38,
+    );
+    const y = clamp(
+      rect.top + rect.height * 0.44 - postboySize.height - 22,
+      116,
+      window.innerHeight - postboySize.height - 36,
+    );
+
+    return { x, y };
+  }
+
+  const x = clamp(window.innerWidth * 0.04, 38, 112);
+  const y = clamp(
+    window.innerHeight * 0.46,
+    164,
+    window.innerHeight - postboySize.height - 36,
   );
-  const y = clamp(window.innerHeight * 0.14, 104, 184);
 
   return { x, y };
 }
@@ -505,6 +535,9 @@ export function PostboyVespaChaser() {
     origin: null,
     points: [],
   });
+  const homePositionRef = useRef<Point>({ x: 0, y: 0 });
+  const lastPointerMoveAtRef = useRef(0);
+  const isReturningHomeRef = useRef(false);
   const scoreRef = useRef(0);
   const timeLeftRef = useRef(GAME_DURATION_SECONDS);
   const gameStatusRef = useRef<GameStatus>("idle");
@@ -611,7 +644,8 @@ export function PostboyVespaChaser() {
     const trailsElement = trails;
     const routePathElement = routePath;
     const routeShadowPathElement = routeShadowPath;
-    const start = initialPosition();
+    const start = homePosition();
+    homePositionRef.current = start;
     motionRef.current = {
       facing: 1,
       targetX: start.x,
@@ -626,6 +660,7 @@ export function PostboyVespaChaser() {
       origin: null,
       points: [],
     };
+    isReturningHomeRef.current = false;
     resetGame(performance.now());
 
     riderElement.style.left = "0px";
@@ -634,6 +669,7 @@ export function PostboyVespaChaser() {
     riderElement.style.opacity = "1";
     riderElement.style.transform = `translate3d(${start.x}px, ${start.y}px, 0)`;
     const autostartAt = performance.now();
+    lastPointerMoveAtRef.current = autostartAt;
     gameStatusRef.current = "playing";
     gameStartedAtRef.current = autostartAt;
     lastSpawnAtRef.current = autostartAt;
@@ -664,6 +700,17 @@ export function PostboyVespaChaser() {
       const current = motionRef.current;
       const route = routeRef.current;
       const nextPoint = { x: event.clientX, y: event.clientY };
+      lastPointerMoveAtRef.current = now;
+
+      if (isReturningHomeRef.current) {
+        route.origin = {
+          x: current.x,
+          y: current.y,
+        };
+        route.points = [];
+        isReturningHomeRef.current = false;
+      }
+
       const routeOrigin = route.origin ?? {
         x: current.x,
         y: current.y,
@@ -704,6 +751,8 @@ export function PostboyVespaChaser() {
     function handleResize() {
       const current = motionRef.current;
       const route = routeRef.current;
+      const nextHome = homePosition();
+      homePositionRef.current = nextHome;
       current.x = clamp(current.x, 64, window.innerWidth - 64);
       current.y = clamp(current.y, 70, window.innerHeight - 64);
       current.targetX = clamp(current.targetX, 64, window.innerWidth - 64);
@@ -717,6 +766,15 @@ export function PostboyVespaChaser() {
       for (const point of route.points) {
         point.x = clamp(point.x, 64, window.innerWidth - 64);
         point.y = clamp(point.y, 70, window.innerHeight - 64);
+      }
+
+      if (isReturningHomeRef.current) {
+        route.points = [
+          {
+            ...nextHome,
+            createdAt: performance.now() - ROUTE_REVEAL_MS,
+          },
+        ];
       }
 
       if (postcardRef.current) {
@@ -993,6 +1051,39 @@ export function PostboyVespaChaser() {
       lastSpawnAtRef.current = now + POSTCARD_RESPAWN_DELAY;
     }
 
+    function routePostboyHome(now: number) {
+      const current = motionRef.current;
+      const route = routeRef.current;
+      const home = homePositionRef.current;
+
+      if (distanceBetween(current, home) < ROUTE_CONSUME_RADIUS) {
+        if (isReturningHomeRef.current) {
+          route.origin = null;
+          route.points = [];
+          isReturningHomeRef.current = false;
+        }
+
+        return;
+      }
+
+      if (isReturningHomeRef.current) {
+        return;
+      }
+
+      route.origin = {
+        x: current.x,
+        y: current.y,
+      };
+      route.points = [
+        {
+          ...home,
+          createdAt: now - ROUTE_REVEAL_MS * 0.5,
+        },
+      ];
+      route.lastAddedAt = now;
+      isReturningHomeRef.current = true;
+    }
+
     function tick(now: number) {
       const current = motionRef.current;
       const route = routeRef.current;
@@ -1061,6 +1152,10 @@ export function PostboyVespaChaser() {
         ) {
           const consumedPoint = route.points.shift();
           route.origin = route.points.length > 0 && consumedPoint ? consumedPoint : null;
+        }
+
+        if (now - lastPointerMoveAtRef.current >= POINTER_IDLE_RETURN_MS) {
+          routePostboyHome(now);
         }
       }
 

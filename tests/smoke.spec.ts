@@ -112,25 +112,36 @@ test("postboy reward entrance uses the slower win animation", async ({ page }) =
   expect(animationDuration).toBe("1.53s");
 });
 
-test("postboy vespa starts near the hero video and follows the mouse", async ({
+test("postboy vespa starts above the headline, follows the mouse, and returns home after idle", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/");
 
+  await page.getByTestId("postboy-game-control").click();
+
+  const headline = page.getByRole("heading", {
+    name: "Your trip should be a coffee table book.",
+  });
   const postboy = page.getByTestId("postboy-vespa-chaser");
   await expect(postboy).toBeVisible();
 
+  const headlineBox = await headline.boundingBox();
   const startBox = await postboy.boundingBox();
 
+  expect(headlineBox).not.toBeNull();
   expect(startBox).not.toBeNull();
 
-  if (!startBox) {
-    throw new Error("Postboy Vespa did not render.");
+  if (!headlineBox || !startBox) {
+    throw new Error("Postboy Vespa or headline did not render.");
   }
 
-  expect(startBox.x).toBeGreaterThan(900);
-  expect(startBox.y).toBeLessThan(180);
+  expect(startBox.x).toBeLessThan(headlineBox.x + 120);
+  expect(startBox.y).toBeLessThan(headlineBox.y + 20);
+  expect(startBox.y + startBox.height).toBeLessThan(
+    headlineBox.y + headlineBox.height * 0.72,
+  );
+  expect(startBox.y + startBox.height).toBeGreaterThan(headlineBox.y - 80);
   expect(startBox.width).toBeGreaterThan(90);
 
   const routePath = page.getByTestId("postboy-route-path");
@@ -174,7 +185,7 @@ test("postboy vespa starts near the hero video and follows the mouse", async ({
 
       return startBox.x - box.x;
     })
-    .toBeGreaterThan(20);
+    .toBeLessThan(-20);
 
   await expect
     .poll(async () => routePath.getAttribute("d"))
@@ -192,6 +203,23 @@ test("postboy vespa starts near the hero video and follows the mouse", async ({
       trails.evaluate((element) => Number(getComputedStyle(element).opacity)),
     )
     .toBeGreaterThan(0.1);
+
+  await page.waitForTimeout(5200);
+
+  await expect
+    .poll(
+      async () => {
+        const box = await postboy.boundingBox();
+
+        if (!box) {
+          return Number.POSITIVE_INFINITY;
+        }
+
+        return Math.hypot(box.x - startBox.x, box.y - startBox.y);
+      },
+      { timeout: 7000 },
+    )
+    .toBeLessThan(90);
 });
 
 test("postboy postcard game spawns a target and increments the score", async ({
