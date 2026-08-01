@@ -16,6 +16,29 @@ const referralCodePattern = /^[A-Z0-9-]{3,32}$/;
 export const metadata: Metadata = {
   title: "Away We Go Invite",
   description: "Give $15, Get $15 with an Away We Go referral invite.",
+  robots: {
+    index: false,
+    follow: false,
+    noarchive: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noarchive: true,
+    },
+  },
+  openGraph: {
+    title: "Away We Go Invite",
+    description: "Give $15, Get $15 with an Away We Go referral invite.",
+    siteName: siteCopy.name,
+    images: ["/og-image.jpg"],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Away We Go Invite",
+    description: "Give $15, Get $15 with an Away We Go referral invite.",
+    images: ["/og-image.jpg"],
+  },
 };
 
 function normalizedReferralCode(rawCode: string) {

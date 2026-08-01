@@ -7,15 +7,21 @@ import {
   captureAppStoreTap,
 } from "@/lib/posthog";
 
-type AppStoreLinkProps = ComponentPropsWithoutRef<"a">;
+type AppStoreLinkProps = ComponentPropsWithoutRef<"a"> & {
+  ctaLocation: string;
+};
 
-export function AppStoreLink({ onClick, ...props }: AppStoreLinkProps) {
+export function AppStoreLink({
+  ctaLocation,
+  onClick,
+  ...props
+}: AppStoreLinkProps) {
   return (
     <a
       {...props}
       data-analytics-event={APP_STORE_TAP_EVENT}
       onClick={(event) => {
-        captureAppStoreTap();
+        captureAppStoreTap(ctaLocation);
         onClick?.(event);
       }}
     />

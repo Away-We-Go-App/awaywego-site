@@ -33,12 +33,24 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
               {siteCopy.name}
             </span>
             <span className="mt-1 text-[0.72rem] uppercase tracking-[0.2em] text-[var(--sepia-light)]">
-              travel journal app
+              travel photo books
             </span>
           </div>
         </Link>
 
         <nav className="flex flex-wrap items-center justify-end gap-4 text-sm font-medium text-[var(--navy)] md:gap-6">
+          <Link
+            href="/travel-photo-books"
+            className="transition-colors hover:text-[var(--brick)]"
+          >
+            Photo books
+          </Link>
+          <Link
+            href="/guides"
+            className="transition-colors hover:text-[var(--brick)]"
+          >
+            Guides
+          </Link>
           {siteCopy.navLinks.map((item) => (
             <Link
               key={item.href}
@@ -50,6 +62,7 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
           ))}
           <AppStoreLink
             href={siteCopy.appStoreUrl}
+            ctaLocation="site-header"
             className="rounded-md border border-[var(--navy)] px-4 py-2 text-[0.72rem] uppercase tracking-[0.22em] [font-family:var(--font-accent)] transition-colors hover:border-[var(--brick)] hover:text-[var(--brick)]"
           >
             App Store

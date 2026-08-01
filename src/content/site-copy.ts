@@ -2,9 +2,11 @@ export const siteCopy = {
   name: "Away We Go",
   domain: "awaywegoapp.com",
   appStoreUrl: "https://apps.apple.com/us/app/away-we-go-travel-books/id6762504520",
+  appStoreId: "6762504520",
   supportEmail: "support@awaywegoapp.com",
   footerNote: "Made for wanderers.",
-  shortDescription: "Your trip should be a coffee table book.",
+  shortDescription:
+    "Turn family trips into personalized travel photo books, then print and deliver them with Away We Go for iPhone.",
   longDescription:
     "Away We Go turns your family trips into beautiful photo books that live in your home and not in your phone.",
   navLinks: [

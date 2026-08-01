@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 
 import { LegalPage } from "@/components/legal-page";
 import { siteCopy } from "@/content/site-copy";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Privacy Policy",
   description: `Privacy information for ${siteCopy.name}.`,
-};
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (

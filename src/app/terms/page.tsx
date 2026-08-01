@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 
 import { LegalPage } from "@/components/legal-page";
 import { siteCopy } from "@/content/site-copy";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Terms of Service",
   description: `Terms of service for ${siteCopy.name}.`,
-};
+  path: "/terms",
+});
 
 export default function TermsPage() {
   return (
