@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { AppStoreLink } from "@/components/app-store-link";
 import { siteCopy } from "@/content/site-copy";
 
 type SiteHeaderProps = {
@@ -47,12 +48,12 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
               {item.label}
             </Link>
           ))}
-          <Link
+          <AppStoreLink
             href={siteCopy.appStoreUrl}
             className="rounded-md border border-[var(--navy)] px-4 py-2 text-[0.72rem] uppercase tracking-[0.22em] [font-family:var(--font-accent)] transition-colors hover:border-[var(--brick)] hover:text-[var(--brick)]"
           >
             App Store
-          </Link>
+          </AppStoreLink>
         </nav>
       </div>
     </header>
