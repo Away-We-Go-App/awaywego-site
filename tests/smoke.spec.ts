@@ -20,7 +20,10 @@ test("homepage and legal pages render the required public content", async ({
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Download on the App Store" }),
-  ).toHaveAttribute("href", /apps\.apple\.com/);
+  ).toHaveAttribute(
+    "href",
+    "https://apps.apple.com/us/app/away-we-go-travel-books/id6762504520",
+  );
   await expect(page.getByRole("link", { name: "Privacy" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Terms" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Support" })).toBeVisible();
@@ -83,6 +86,12 @@ test("referral invite page preserves the code and links into the app", async ({
 }) => {
   await page.goto("/invite/Friend15");
 
+  await expect(
+    page.getByRole("link", { name: "App Store", exact: true }),
+  ).toHaveAttribute(
+    "href",
+    "https://apps.apple.com/us/app/away-we-go-travel-books/id6762504520",
+  );
   await expect(
     page.getByRole("heading", { name: "Give $15, Get $15" }),
   ).toBeVisible();

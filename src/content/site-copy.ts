@@ -1,7 +1,7 @@
 export const siteCopy = {
   name: "Away We Go",
   domain: "awaywegoapp.com",
-  appStoreUrl: "https://apps.apple.com/us/search?term=Away%20We%20Go",
+  appStoreUrl: "https://apps.apple.com/us/app/away-we-go-travel-books/id6762504520",
   supportEmail: "support@awaywegoapp.com",
   footerNote: "Made for wanderers.",
   shortDescription: "Your trip should be a coffee table book.",
