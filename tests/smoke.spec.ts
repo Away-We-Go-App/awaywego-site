@@ -1,5 +1,90 @@
 import { expect, test } from "@playwright/test";
 
+test.describe("PostHog tracking", () => {
+  test.use({
+    userAgent:
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+  });
+
+  test("App Store CTA captures its canonical event before external navigation", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      type BeaconRecord = {
+        data: BodyInit | null;
+        url: string;
+      };
+      const records: BeaconRecord[] = [];
+
+      Object.defineProperty(navigator, "webdriver", {
+        configurable: true,
+        get: () => false,
+      });
+      Object.defineProperty(navigator, "userAgentData", {
+        configurable: true,
+        get: () => undefined,
+      });
+      Object.defineProperty(window, "__posthogBeacons", {
+        configurable: true,
+        value: records,
+      });
+      Object.defineProperty(navigator, "sendBeacon", {
+        configurable: true,
+        value: (url: string, data: BodyInit | null) => {
+          records.push({ data, url });
+          return true;
+        },
+      });
+    });
+    await page.goto("/");
+
+    const appStoreLink = page.getByRole("link", {
+      name: "Download on the App Store",
+    });
+    await appStoreLink.evaluate((link) => {
+      link.addEventListener("click", (event) => event.preventDefault(), {
+        once: true,
+      });
+    });
+    await appStoreLink.click();
+
+    const eventPayload = await page.evaluate(async () => {
+      type BeaconRecord = {
+        data: BodyInit | null;
+        url: string;
+      };
+      const records =
+        (window as Window & { __posthogBeacons?: BeaconRecord[] })
+          .__posthogBeacons ?? [];
+      const record = records.find(({ url }) => url.endsWith("/e/"));
+
+      if (!record) {
+        return null;
+      }
+
+      if (record.data instanceof Blob) {
+        const body = await record.data.arrayBuffer();
+        const bytes = new Uint8Array(body);
+
+        if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+          const stream = new Blob([body])
+            .stream()
+            .pipeThrough(new DecompressionStream("gzip"));
+          return await new Response(stream).text();
+        }
+
+        return new TextDecoder().decode(bytes);
+      }
+
+      return String(record.data ?? "");
+    });
+
+    expect(eventPayload).not.toBeNull();
+    expect(eventPayload).toContain('"event":"marketing:app_store_tap"');
+    await expect(page).toHaveURL("http://localhost:3000/");
+  });
+});
+
 test("homepage and legal pages render the required public content", async ({
   page,
 }) => {
@@ -24,6 +109,9 @@ test("homepage and legal pages render the required public content", async ({
     "href",
     "https://apps.apple.com/us/app/away-we-go-travel-books/id6762504520",
   );
+  await expect(
+    page.getByRole("link", { name: "Download on the App Store" }),
+  ).toHaveAttribute("data-analytics-event", "marketing:app_store_tap");
   await expect(page.getByRole("link", { name: "Privacy" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Terms" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Support" })).toBeVisible();
@@ -92,6 +180,9 @@ test("referral invite page preserves the code and links into the app", async ({
     "href",
     "https://apps.apple.com/us/app/away-we-go-travel-books/id6762504520",
   );
+  await expect(
+    page.getByRole("link", { name: "App Store", exact: true }),
+  ).toHaveAttribute("data-analytics-event", "marketing:app_store_tap");
   await expect(
     page.getByRole("heading", { name: "Give $15, Get $15" }),
   ).toBeVisible();

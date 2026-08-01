@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { AppStoreLink } from "@/components/app-store-link";
 import { MarketingDemoVideo } from "@/components/marketing-demo-video";
 import {
   PostboyMobileGameEntry,
@@ -45,7 +46,7 @@ export function MarketingHome() {
                 that live in your home and not in your phone.
               </p>
 
-              <a
+              <AppStoreLink
                 id="app-store"
                 href={siteCopy.appStoreUrl}
                 aria-label="Download on the App Store"
@@ -58,7 +59,7 @@ export function MarketingHome() {
                   height={56}
                   className="h-14 w-auto"
                 />
-              </a>
+              </AppStoreLink>
 
               <footer className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-[0.66rem] font-semibold uppercase tracking-[0.17em] text-[#a0a0a0]">
                 <span>&copy; 2026 Away We Go</span>
