@@ -29,6 +29,18 @@ export function SiteFooter() {
           <Link href="/" className="transition-colors hover:text-[var(--brick)]">
             Home
           </Link>
+          <Link
+            href="/travel-photo-books"
+            className="transition-colors hover:text-[var(--brick)]"
+          >
+            Photo books
+          </Link>
+          <Link
+            href="/guides"
+            className="transition-colors hover:text-[var(--brick)]"
+          >
+            Guides
+          </Link>
           <a
             href={`mailto:${siteCopy.supportEmail}`}
             className="transition-colors hover:text-[var(--brick)]"

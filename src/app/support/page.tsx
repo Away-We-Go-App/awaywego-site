@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 
 import { LegalPage } from "@/components/legal-page";
 import { siteCopy } from "@/content/site-copy";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Support",
   description: `Support contact details for ${siteCopy.name}.`,
-};
+  path: "/support",
+});
 
 export default function SupportPage() {
   return (

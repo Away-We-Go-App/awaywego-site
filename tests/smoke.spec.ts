@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+const testBaseUrl = `http://localhost:${Number(process.env.PLAYWRIGHT_PORT ?? 3000)}`;
+
 test.describe("PostHog tracking", () => {
   test.use({
     userAgent:
@@ -81,7 +83,9 @@ test.describe("PostHog tracking", () => {
 
     expect(eventPayload).not.toBeNull();
     expect(eventPayload).toContain('"event":"marketing:app_store_tap"');
-    await expect(page).toHaveURL("http://localhost:3000/");
+    expect(eventPayload).toContain('"route":"/"');
+    expect(eventPayload).toContain('"cta_location":"homepage-hero"');
+    await expect(page).toHaveURL(`${testBaseUrl}/`);
   });
 });
 

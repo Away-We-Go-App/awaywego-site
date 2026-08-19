@@ -9,7 +9,9 @@ import {
 } from "@/components/postboy-vespa-chaser";
 import { siteCopy } from "@/content/site-copy";
 
-const legalLinks = [
+const footerLinks = [
+  { href: "/travel-photo-books", label: "Photo books" },
+  { href: "/guides", label: "Guides" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
   { href: "/support", label: "Support" },
@@ -49,6 +51,7 @@ export function MarketingHome() {
               <AppStoreLink
                 id="app-store"
                 href={siteCopy.appStoreUrl}
+                ctaLocation="homepage-hero"
                 aria-label="Download on the App Store"
                 className="mt-7 inline-flex h-14 w-[168px] items-center justify-center transition hover:opacity-85 focus:outline-none focus:ring-2 focus:ring-[#111827] focus:ring-offset-4 focus:ring-offset-[#f8f7f4]"
               >
@@ -64,7 +67,7 @@ export function MarketingHome() {
               <footer className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-[0.66rem] font-semibold uppercase tracking-[0.17em] text-[#a0a0a0]">
                 <span>&copy; 2026 Away We Go</span>
                 <nav className="flex flex-wrap items-center gap-4">
-                  {legalLinks.map((link) => (
+                  {footerLinks.map((link) => (
                     <Link
                       key={link.href}
                       href={link.href}
