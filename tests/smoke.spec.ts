@@ -680,7 +680,7 @@ test("postboy vespa respects reduced motion", async ({ page }) => {
   await expect(page.getByTestId("postboy-postcard")).toHaveCount(0);
 });
 
-test("apple app site association exposes referral invite paths", async ({
+test("apple app site association exposes app entry and preserves referral invite paths", async ({
   request,
 }) => {
   const response = await request.get(
@@ -698,6 +698,9 @@ test("apple app site association exposes referral invite paths", async ({
           appIDs: ["5CC3T43XKF.com.sebdeluca.TravelStack"],
           components: [
             {
+              "/": "/open",
+            },
+            {
               "/": "/invite/*",
             },
           ],
@@ -705,6 +708,20 @@ test("apple app site association exposes referral invite paths", async ({
       ],
     },
   });
+});
+
+test("email app entry provides a mobile-friendly fallback without redirecting", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/open?utm_source=onesignal&utm_campaign=labor-day");
+
+  await expect(page.getByRole("heading", { name: "Your next chapter awaits." })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open the app", exact: true })).toHaveAttribute("href", "awaywego://open");
+  await expect(page.getByRole("link", { name: "Download on the App Store", exact: true })).toHaveAttribute(
+    "href", "https://apps.apple.com/us/app/away-we-go-travel-books/id6762504520",
+  );
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, nofollow");
+  await expect(page).toHaveURL(/\/open\?utm_source=onesignal&utm_campaign=labor-day$/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
 test("referral invite page rejects malformed codes", async ({ request }) => {

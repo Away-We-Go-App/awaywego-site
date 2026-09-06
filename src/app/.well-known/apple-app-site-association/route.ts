@@ -6,6 +6,9 @@ const appleAppSiteAssociation = {
         appIDs: ["5CC3T43XKF.com.sebdeluca.TravelStack"],
         components: [
           {
+            "/": "/open",
+          },
+          {
             "/": "/invite/*",
           },
         ],
