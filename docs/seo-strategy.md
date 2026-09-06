@@ -1,6 +1,6 @@
 # Away We Go SEO launch strategy
 
-Status: implementation staged on August 1, 2026. Hosted setup and production observation remain human gates.
+Status: SEO expansion implemented on September 5, 2026. Hosted setup and production observation remain human gates.
 
 ## Positioning and launch thesis
 
@@ -11,6 +11,7 @@ The initial search wedge is not generic photo printing. It is the overlap of:
 - high-intent travel photo book creation;
 - the painful photo-selection and story-shaping jobs that happen before ordering;
 - family trips, where people, captions, maps, and small details matter as much as scenery;
+- specific buyer situations such as family vacations, honeymoons, and iPhone-first travel editing;
 - a product workflow grounded in verifiable features: Magic Builder, Taste Check, Cover Star, movable pages and photos, photo grids, captions and story pages, crop and frame controls, custom maps, artwork for more than 250 destinations, personalized covers, three printed format tiers, printing, and delivery.
 
 The site should answer the question before presenting the product. Every page needs a distinct intent, a practical takeaway, contextual links to the next useful page, and one clear App Store action.
@@ -32,14 +33,26 @@ Keywords are working hypotheses until Search Console supplies real query data. D
 
 | Cluster | Primary intent | Initial page | Natural extensions |
 | --- | --- | --- | --- |
-| Travel photo books | Compare or start a product | `/travel-photo-books` | family vacation photo book, trip photo book, travel memory book |
+| Travel photo books | Compare or start a product | `/travel-photo-books` | trip photo book, travel memory book |
+| Family vacation photo books | Compare or start a product | `/travel-photo-books` | family vacation photo book, family travel book |
+| Honeymoon photo books | Compare or start a product | `/honeymoon-photo-books` | honeymoon album, newlywed travel book |
+| iPhone travel photo books | Compare or start a product | `/iphone-travel-photo-books` | make a photo book from iPhone photos, iPhone photo book |
 | Make a book | Learn the full workflow | `/guides/how-to-make-a-travel-photo-book` | organize a travel photo book, travel book layout, travel book story |
 | Choose photos | Reduce an overflowing camera roll | `/guides/how-to-choose-photos-for-a-travel-photo-book` | how many travel photos, remove duplicate vacation photos, family photo selection |
-| Story and captions | Add meaning beyond images | Planned month 1 | travel photo book captions, family vacation story prompts |
-| Trip formats | Find advice for a specific journey | Planned months 1–2 | family vacation, road trip, city break, multi-stop trip |
+| Story and captions | Add meaning beyond images | `/guides/travel-photo-book-captions-and-story-prompts` | travel photo book captions, family vacation story prompts |
+| Road trip structure | Plan chapters for a route | `/guides/how-to-make-a-road-trip-photo-book` | road trip photo book, road trip album structure |
+| Trip formats | Find advice for a specific journey | Existing buyer pages and guides | family vacation, honeymoon, road trip, multi-stop trip |
 | Place and design | Decide how to represent location | Planned month 3 | travel photo book maps, destination cover ideas, place artwork |
 
 Use Search Console query and page data weekly. When a page earns impressions for a closely related query but few clicks, improve its title, description, opening answer, and section coverage. When a new intent appears repeatedly and does not fit an existing page, add it to the editorial backlog. Search demand observed in the product’s own data outranks generic volume estimates.
+
+## Implemented expansion and current signal
+
+The September 5 implementation keeps `/travel-photo-books` as the family-vacation pillar and adds two differentiated buyer pages: `/honeymoon-photo-books` and `/iphone-travel-photo-books`. It also adds `/guides/travel-photo-book-captions-and-story-prompts` and `/guides/how-to-make-a-road-trip-photo-book`. The guide index, sitemap, canonical metadata, breadcrumbs, structured data, contextual links, and App Store CTAs are sourced from the same typed content registries used by the existing pages. No location-page generator was added.
+
+The Search Console snapshot read on September 5 covered August 19–September 3 and showed 1 click, 10 impressions, and average position 36.2 in the selected report; the four visible query rows each had one impression. This is an early indexing signal, not evidence of search volume, ranking stability, or demand validation. The page-indexing snapshot last updated August 27 showed 5 indexed and 7 excluded URLs; the observed exclusions were redirects, a generated icon variant, and legal/support surfaces, which did not identify an existing content-page blocker. The new URLs were not deployed in that snapshot and remain unobserved. Keep the query list above as hypotheses until a longer, page-level sample exists.
+
+Next measurement steps are to verify the new URLs and sitemap after deployment, request indexing for the pillar, buyer pages, and new guides, then review Search Console by page and query after a meaningful 28-day window. Record impressions, clicks, and relevant query variants without inventing volume or ranking targets. In the existing CTA-only analytics setup, compare `marketing:app_store_tap` by normalized route and CTA location; use App Store Connect for installs. Paid-book orders are the business outcome, but website → app → paid-order attribution is currently unverified. Expanded pageview and Web Vitals collection remains a separate privacy and hosted-configuration gate.
 
 ## Editorial guardrails
 
@@ -57,7 +70,7 @@ Use Search Console query and page data weekly. When a page earns impressions for
 | Tool | Role | Launch decision |
 | --- | --- | --- |
 | Google Search Console | Source of truth for indexing, queries, impressions, clicks, click-through rate, and average position | Primary; free |
-| Bing Webmaster Tools | Secondary index coverage and query feedback; can import a verified Google property | Enable after launch; free |
+| Bing Webmaster Tools | Secondary index coverage and query feedback; can import a verified Google property | Deferred pending an explicit measurement decision |
 | PostHog web analytics | Existing App Store tap measurement, with pageviews, page-leave, and Web Vitals staged separately | CTA event is live; expanded collection stays off until the gates below pass; free tier is sufficient |
 | App Store Connect | App Store product-page views, downloads, conversion, and source reporting available to the account | Source of truth for installs; free with the developer account |
 | PageSpeed Insights / Lighthouse | Lab performance and Core Web Vitals diagnostics | Run on release and monthly; free |
@@ -73,8 +86,8 @@ History-aware pageviews, pageleave, and aggregate Web Vitals are independently s
 Code can be merged independently of these gates because the existing CTA event does not broaden and the new web-analytics flag is off by default.
 
 1. Deploy the reviewed SEO routes and verify `robots.txt`, `sitemap.xml`, canonical tags, metadata, status codes, structured data, and App Store links on the production domain.
-2. The domain already had a Google verification TXT record during the August 1 preflight. Confirm the Search Console domain property is accessible, then submit `https://awaywegoapp.com/sitemap.xml` and request indexing for the home page, pillar, and two guides. The optional `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` hook should remain unset unless URL-prefix verification is specifically needed.
-3. Add the property to Bing Webmaster Tools, preferably by importing the verified Google property, then submit the same sitemap.
+2. The domain already had a Google verification TXT record during the August 1 preflight. Confirm the Search Console domain property is accessible, then submit `https://awaywegoapp.com/sitemap.xml` and request indexing for the home page, family-vacation pillar, two buyer pages, and new guides. The optional `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` hook should remain unset unless URL-prefix verification is specifically needed.
+3. Keep Bing Webmaster Tools deferred; revisit it only after the Google Search Console baseline and an explicit measurement decision.
 4. Confirm the existing `marketing:app_store_tap` event still arrives after deploy with its normalized `route` and `cta_location`, no invite code or query string, no browser persistence, and no person profile.
 5. Before enabling expanded web analytics, review and update the privacy policy so it describes the intended pageview, pageleave, and Web Vitals collection. This is a policy gate, not a code assumption.
 6. Enable and confirm IP anonymization in the intended PostHog project. Keep raw project settings and tokens out of source and operational docs.
@@ -118,19 +131,19 @@ Monthly, in 60–90 minutes:
 
 ## First 90 days
 
-The launch set is the travel-photo-book pillar plus two detailed guides, supported by the guides index and homepage links. The publishing assumption is two strong new pieces per month.
+The launch set is the family-vacation travel-photo-book pillar, two differentiated buyer pages, and four detailed guides, supported by the guides index and contextual links. The publishing assumption is two strong new pieces each month after this expansion.
 
 | Window | New piece 1 | New piece 2 | Improvement / distribution work |
 | --- | --- | --- | --- |
-| Days 1–30 | Family vacation photo book ideas that preserve children’s voices and shared moments | Travel photo book caption and story-page prompts | Submit sitemap; ask a small set of relevant family-travel or photography partners for editorial feedback, not reciprocal link schemes |
-| Days 31–60 | How to make a road trip photo book with chapters, route maps, and transition photos | How to organize iPhone travel photos before making a book | Update the initial guides from Search Console queries; add one original screenshot or diagram only when it clarifies a step |
-| Days 61–90 | Travel photo book cover ideas using destination, year, family, photo, and artwork | How to use maps in a travel photo book without overwhelming the story | Consolidate overlapping queries; seek inclusion in a few relevant resource roundups or partner pages where the content genuinely helps |
+| Days 1–30 | Observe the expanded pillar, buyer pages, and guides after deployment | Review indexing, query variants, and App Store taps by route | Submit the sitemap and request indexing; ask a small set of relevant family-travel or photography partners for editorial feedback, not reciprocal link schemes |
+| Days 31–60 | Refresh the captions and road-trip guides from observed query data | Publish one adjacent guide only when Search Console shows a distinct intent | Add one original screenshot or diagram only when it clarifies a step; keep website → paid-order attribution explicitly unproven |
+| Days 61–90 | Test cover or map guidance only if the query evidence supports it | Consolidate overlapping pages and refresh weak click-through titles | Seek inclusion in a few relevant resource roundups or partner pages where the content genuinely helps |
 
-Each new piece should link to the pillar, one sibling guide, and the App Store. The pillar or guides index should add a reciprocal link in the same change. By day 90, aim to have earned 2–5 legitimate referring domains through product relationships, original resources, or editorial mentions; this is an operating goal, not a purchase target.
+Each new piece should link to the pillar, one sibling page or guide, and the App Store. The pillar or guides index should add a reciprocal link in the same change. By day 90, aim to have earned 2–5 legitimate referring domains through product relationships, original resources, or editorial mentions; this is an operating goal, not a purchase target.
 
 ## Conservative traction hypotheses
 
-These ranges are hypotheses, not promises. They assume a new or thin domain, four meaningful non-legal launch surfaces, two strong new pieces each month, correct indexing, no major technical regressions, and 2–5 legitimate referring domains by month 3. Search demand, release timing, App Store conversion, seasonality, and domain history can move results outside the ranges.
+These ranges are hypotheses, not promises or targets. They assume a new or thin domain, an expanded set of meaningful non-legal surfaces, two strong new pieces each month, correct indexing, no major technical regressions, and 2–5 legitimate referring domains by month 3. Search demand, release timing, App Store conversion, seasonality, and domain history can move results outside the ranges.
 
 | Month | Organic impressions | Organic clicks | App Store clicks | Attributed installs |
 | --- | ---: | ---: | ---: | ---: |

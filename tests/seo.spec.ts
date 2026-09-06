@@ -245,9 +245,13 @@ test("robots and sitemap expose only the intended crawlable routes", async ({
   const expectedUrls = [
     `${siteUrl}/`,
     `${siteUrl}/travel-photo-books`,
+    `${siteUrl}/honeymoon-photo-books`,
+    `${siteUrl}/iphone-travel-photo-books`,
     `${siteUrl}/guides`,
     `${siteUrl}/guides/how-to-make-a-travel-photo-book`,
     `${siteUrl}/guides/how-to-choose-photos-for-a-travel-photo-book`,
+    `${siteUrl}/guides/travel-photo-book-captions-and-story-prompts`,
+    `${siteUrl}/guides/how-to-make-a-road-trip-photo-book`,
     `${siteUrl}/privacy`,
     `${siteUrl}/terms`,
     `${siteUrl}/support`,
@@ -258,6 +262,125 @@ test("robots and sitemap expose only the intended crawlable routes", async ({
   }
 
   expect(sitemap).not.toContain("/invite/");
+});
+
+test("buyer pages publish indexable metadata, structured data, and purchase paths", async ({
+  page,
+}) => {
+  const buyerPages = [
+    {
+      path: "/honeymoon-photo-books",
+      title: "Honeymoon Photo Books",
+      relatedPath: "/guides/travel-photo-book-captions-and-story-prompts",
+    },
+    {
+      path: "/iphone-travel-photo-books",
+      title: "iPhone Travel Photo Books",
+      relatedPath: "/guides/how-to-choose-photos-for-a-travel-photo-book",
+    },
+  ];
+
+  for (const buyerPage of buyerPages) {
+    await page.goto(buyerPage.path);
+
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      buyerPage.title,
+    );
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      `${siteUrl}${buyerPage.path}`,
+    );
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      "content",
+      /index, follow/,
+    );
+    await expect(
+      page.locator('a[data-analytics-event="marketing:app_store_tap"]'),
+    ).toHaveCount(3);
+    await expect(page.locator(`a[href="${buyerPage.relatedPath}"]`)).toHaveCount(
+      1,
+    );
+
+    const jsonLd = await readJsonLd(page, "buyer-page-structured-data");
+    const graph = jsonLd["@graph"] as Array<Record<string, unknown>>;
+    const webPage = graph.find((node) => node["@type"] === "WebPage");
+    const breadcrumbs = graph.find(
+      (node) => node["@type"] === "BreadcrumbList",
+    );
+
+    expect(webPage).toMatchObject({
+      name: buyerPage.title,
+      url: `${siteUrl}${buyerPage.path}`,
+    });
+    expect(breadcrumbs).toBeTruthy();
+  }
+});
+
+test("new guide pages publish article metadata and contextual navigation", async ({
+  page,
+}) => {
+  const newGuides = [
+    {
+      path: "/guides/travel-photo-book-captions-and-story-prompts",
+      title: "Travel Photo Book Captions and Story Prompts",
+      relatedPath: "/honeymoon-photo-books",
+    },
+    {
+      path: "/guides/how-to-make-a-road-trip-photo-book",
+      title: "How to Structure a Road Trip Photo Book",
+      relatedPath: "/iphone-travel-photo-books",
+    },
+  ];
+
+  for (const guide of newGuides) {
+    await page.goto(guide.path);
+
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      guide.title,
+    );
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      `${siteUrl}${guide.path}`,
+    );
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      "content",
+      /index, follow/,
+    );
+    await expect(page.locator(`a[href="${guide.relatedPath}"]`)).toHaveCount(1);
+
+    const jsonLd = await readJsonLd(page, "guide-structured-data");
+    const graph = jsonLd["@graph"] as Array<Record<string, unknown>>;
+    const article = graph.find((node) => node["@type"] === "Article");
+    const breadcrumbs = graph.find(
+      (node) => node["@type"] === "BreadcrumbList",
+    );
+
+    expect(article).toMatchObject({
+      headline: guide.title,
+      datePublished: "2026-09-05",
+      dateModified: "2026-09-05",
+      mainEntityOfPage: `${siteUrl}${guide.path}`,
+    });
+    expect(breadcrumbs).toBeTruthy();
+    await expect(
+      page.locator('a[data-analytics-event="marketing:app_store_tap"]'),
+    ).toHaveCount(2);
+  }
+});
+
+test("buyer route rejects unknown top-level slugs and open route stays noindex", async ({
+  page,
+  request,
+}) => {
+  const unknownResponse = await request.get("/not-a-buyer-page");
+  expect(unknownResponse.status()).toBe(404);
+
+  await page.goto("/open");
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+    "content",
+    /noindex, nofollow/,
+  );
+  await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
 });
 
 test("pillar and guide cluster provide useful headings and reciprocal links", async ({
@@ -288,6 +411,23 @@ test("pillar and guide cluster provide useful headings and reciprocal links", as
   ).toHaveAttribute(
     "href",
     "/guides/how-to-make-a-travel-photo-book",
+  );
+  await expect(
+    page.getByRole("link", { name: "Honeymoon photo books" }),
+  ).toHaveAttribute("href", "/honeymoon-photo-books");
+  await expect(
+    page.getByRole("link", { name: "iPhone travel photo books" }),
+  ).toHaveAttribute("href", "/iphone-travel-photo-books");
+  await expect(
+    page.getByRole("link", { name: "Road trip book structure" }),
+  ).toHaveAttribute("href", "/guides/how-to-make-a-road-trip-photo-book");
+  await expect(
+    page.getByRole("link", {
+      name: "travel photo book captions and story prompts",
+    }),
+  ).toHaveAttribute(
+    "href",
+    "/guides/travel-photo-book-captions-and-story-prompts",
   );
   await expect(
     page.getByRole("link", { name: "Download Away We Go on the App Store" }),
@@ -348,7 +488,7 @@ test("pillar and guide cluster provide useful headings and reciprocal links", as
   expect(article).toMatchObject({
     headline: "How to Make a Travel Photo Book",
     datePublished: "2026-08-01",
-    dateModified: "2026-08-01",
+    dateModified: "2026-09-05",
     mainEntityOfPage: `${siteUrl}/guides/how-to-make-a-travel-photo-book`,
   });
   expect(breadcrumbs).toBeTruthy();
