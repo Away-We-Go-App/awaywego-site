@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 
 import { EditorialCta } from "@/components/editorial-cta";
@@ -95,6 +96,27 @@ export default function TravelPhotoBooksPage() {
             </p>
           </header>
 
+          <figure className="mt-10 grid gap-6 rounded-[22px] border border-[#111827]/10 bg-[#fffdf6] p-5 shadow-[0_18px_50px_rgba(17,24,39,0.06)] sm:grid-cols-[minmax(180px,250px)_1fr] sm:items-center sm:p-7">
+            <Image
+              src="/marketing/onboarding-product-book-builder.png"
+              alt="Example Away We Go book draft shown in the app"
+              width={720}
+              height={1100}
+              sizes="(min-width: 1024px) 250px, 55vw"
+              className="mx-auto max-h-[420px] w-auto rounded-[12px] object-contain"
+            />
+            <figcaption className="max-w-xl text-base leading-7 text-[#626262] sm:text-lg sm:leading-8">
+              <span className="block text-[0.66rem] font-bold uppercase tracking-[0.2em] text-[var(--brick)]">
+                Example product view
+              </span>
+              <span className="mt-3 block">
+                A first book draft gives a family vacation a place to start;
+                you decide which pages, photographs, and details belong in the
+                finished story.
+              </span>
+            </figcaption>
+          </figure>
+
           <section className="mt-16 border-y border-[#111827]/10 py-12 sm:py-16">
             <div className="grid gap-8 lg:grid-cols-[0.7fr_1.3fr]">
               <h2 className="serif-display-heading text-3xl font-semibold leading-tight text-[#05070c] sm:text-4xl">
@@ -144,6 +166,69 @@ export default function TravelPhotoBooksPage() {
                 </li>
               ))}
             </ol>
+          </section>
+
+          <section className="mt-16 border-t border-[#111827]/10 pt-12 sm:mt-20">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[var(--brick)]">
+              Start with the trip in front of you
+            </p>
+            <h2 className="serif-display-heading mt-4 max-w-3xl text-4xl font-semibold leading-tight text-[#05070c] sm:text-5xl">
+              Advice for the kind of book you want to make
+            </h2>
+            <div className="mt-8 grid gap-5 md:grid-cols-3">
+              <article className="rounded-[20px] border border-[#111827]/10 bg-[#fffdf6] p-6 sm:p-7">
+                <h3 className="serif-display-heading text-2xl font-semibold leading-tight text-[#05070c]">
+                  <Link
+                    href="/honeymoon-photo-books"
+                    className="transition hover:text-[var(--brick)]"
+                  >
+                    Honeymoon photo books
+                  </Link>
+                </h3>
+                <p className="mt-3 text-base leading-7 text-[#626262]">
+                  Build a two-person story around shared rituals, turning
+                  points, and the ordinary moments behind the destination.
+                </p>
+              </article>
+              <article className="rounded-[20px] border border-[#111827]/10 bg-[#fffdf6] p-6 sm:p-7">
+                <h3 className="serif-display-heading text-2xl font-semibold leading-tight text-[#05070c]">
+                  <Link
+                    href="/iphone-travel-photo-books"
+                    className="transition hover:text-[var(--brick)]"
+                  >
+                    iPhone travel photo books
+                  </Link>
+                </h3>
+                <p className="mt-3 text-base leading-7 text-[#626262]">
+                  Turn one focused camera-roll album into a first draft, then
+                  edit the sequence from your iPhone.
+                </p>
+              </article>
+              <article className="rounded-[20px] border border-[#111827]/10 bg-[#fffdf6] p-6 sm:p-7">
+                <h3 className="serif-display-heading text-2xl font-semibold leading-tight text-[#05070c]">
+                  <Link
+                    href="/guides/how-to-make-a-road-trip-photo-book"
+                    className="transition hover:text-[var(--brick)]"
+                  >
+                    Road trip book structure
+                  </Link>
+                </h3>
+                <p className="mt-3 text-base leading-7 text-[#626262]">
+                  Use stops, route changes, maps, and transition photographs to
+                  give a long drive a readable shape.
+                </p>
+              </article>
+            </div>
+            <p className="mt-7 max-w-3xl text-lg leading-8 text-[#4d4d4d]">
+              When the images need more context, use our guide to{" "}
+              <Link
+                href="/guides/travel-photo-book-captions-and-story-prompts"
+                className="font-semibold text-[var(--brick)] underline decoration-[var(--brick)]/25 underline-offset-4"
+              >
+                travel photo book captions and story prompts
+              </Link>
+              .
+            </p>
           </section>
 
           <section className="mt-16 grid gap-8 rounded-[24px] bg-[#17243a] p-7 text-[#fffdf6] sm:p-10 lg:grid-cols-2 lg:p-12">

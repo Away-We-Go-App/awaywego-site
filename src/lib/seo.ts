@@ -13,6 +13,7 @@ const socialImage = {
 
 type PageMetadataOptions = {
   description: string;
+  modifiedTime?: string;
   path: string;
   publishedTime?: string;
   title: string;
@@ -21,6 +22,7 @@ type PageMetadataOptions = {
 
 export function createPageMetadata({
   description,
+  modifiedTime,
   path,
   publishedTime,
   title,
@@ -37,6 +39,7 @@ export function createPageMetadata({
           locale: "en_US",
           type,
           publishedTime,
+          modifiedTime,
           authors: [siteCopy.name],
         }
       : {

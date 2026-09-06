@@ -39,6 +39,7 @@ export async function generateMetadata({
     path: `/guides/${guide.slug}`,
     type: "article",
     publishedTime: guide.publishedDate,
+    modifiedTime: guide.reviewedDate,
   });
 }
 
@@ -51,6 +52,13 @@ export default async function GuidePage({ params }: GuidePageProps) {
   }
 
   const otherGuides = guides.filter((candidate) => candidate.slug !== slug);
+  const linkedGuidePaths = new Set([
+    "/travel-photo-books",
+    ...otherGuides.map((otherGuide) => `/guides/${otherGuide.slug}`),
+  ]);
+  const relatedLinks = guide.relatedLinks?.filter(
+    (relatedLink) => !linkedGuidePaths.has(relatedLink.href),
+  );
   const guidePath = `/guides/${guide.slug}`;
   const publishedDate = new Intl.DateTimeFormat("en-US", {
     dateStyle: "long",
@@ -65,7 +73,7 @@ export default async function GuidePage({ params }: GuidePageProps) {
         headline: guide.title,
         description: guide.description,
         datePublished: guide.publishedDate,
-        dateModified: guide.publishedDate,
+        dateModified: guide.reviewedDate,
         mainEntityOfPage: absoluteUrl(guidePath),
         author: {
           "@type": "Organization",
@@ -117,8 +125,14 @@ export default async function GuidePage({ params }: GuidePageProps) {
               {guide.intro}
             </p>
             <p className="mt-6 text-sm font-semibold uppercase tracking-[0.13em] text-[#626262]">
-              <time dateTime={guide.publishedDate}>{publishedDate}</time> ·{" "}
-              {guide.readTime}
+              <time dateTime={guide.publishedDate}>{publishedDate}</time> · Reviewed{" "}
+              <time dateTime={guide.reviewedDate}>
+                {new Intl.DateTimeFormat("en-US", {
+                  dateStyle: "long",
+                  timeZone: "UTC",
+                }).format(new Date(`${guide.reviewedDate}T00:00:00Z`))}
+              </time>{" "}
+              · {guide.readTime}
             </p>
           </header>
 
@@ -144,6 +158,19 @@ export default async function GuidePage({ params }: GuidePageProps) {
                       </li>
                     ))}
                   </ul>
+                ) : null}
+                {section.example ? (
+                  <aside className="mt-7 rounded-[20px] border border-[#b04a3a]/20 bg-[#f7e7df] p-6 sm:p-8">
+                    <p className="text-[0.66rem] font-bold uppercase tracking-[0.2em] text-[var(--brick)]">
+                      {section.example.label}
+                    </p>
+                    <h3 className="serif-display-heading mt-3 text-2xl font-semibold leading-tight text-[#05070c] sm:text-3xl">
+                      {section.example.heading}
+                    </h3>
+                    <p className="mt-3 max-w-3xl text-base leading-7 text-[#4d4d4d] sm:text-lg sm:leading-8">
+                      {section.example.copy}
+                    </p>
+                  </aside>
                 ) : null}
               </section>
             ))}
@@ -174,6 +201,18 @@ export default async function GuidePage({ params }: GuidePageProps) {
                     {otherGuide.title}
                   </Link>
                   .
+                </p>
+              ))}
+              {relatedLinks?.map((relatedLink) => (
+                <p key={relatedLink.href}>
+                  Also useful: {" "}
+                  <Link
+                    href={relatedLink.href}
+                    className="font-semibold text-[var(--brick)] underline decoration-[var(--brick)]/25 underline-offset-4"
+                  >
+                    {relatedLink.label}
+                  </Link>
+                  . {relatedLink.description}
                 </p>
               ))}
             </div>
